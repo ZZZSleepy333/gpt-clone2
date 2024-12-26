@@ -4,9 +4,9 @@ export const useSendMessage = () => {
     {
       userMessage: "",
       botMessage: {
-        title: "Some Title",
+        title: "",
         link: "",
-        snippet: "",
+        snippet: "Xin chào, tôi có thể giúp gì được cho bạn",
       },
     },
   ]);
