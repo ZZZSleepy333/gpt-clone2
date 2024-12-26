@@ -49,4 +49,7 @@ export default defineNuxtConfig({
       ],
     },
   },
+  nitro: {
+    moduleSideEffects: ["nuxt-server-utils"],
+  },
 });
