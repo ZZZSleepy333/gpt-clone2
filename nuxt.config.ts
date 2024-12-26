@@ -51,5 +51,8 @@ export default defineNuxtConfig({
   },
   nitro: {
     moduleSideEffects: ["nuxt-server-utils"],
+    externals: {
+      inline: ["@nuxt/kit"],
+    },
   },
 });
