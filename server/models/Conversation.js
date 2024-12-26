@@ -1,7 +1,8 @@
-import mongoose from "mongoose";
+import { MongoClient } from "mongodb";
 
-const conversationSchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true },
+// Định nghĩa cấu trúc collection (không bắt buộc nhưng giúp code dễ đọc)
+const conversationStructure = {
+  userId: String, // required, unique
   conversation: [
     {
       userMessage: String,
@@ -12,7 +13,6 @@ const conversationSchema = new mongoose.Schema({
       },
     },
   ],
-});
+};
 
-const Conversation = mongoose.model("Conversation", conversationSchema);
-export default Conversation;
+export default conversationStructure;
