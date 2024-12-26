@@ -30,6 +30,7 @@
     "nitropack": "^2.10.4",
     "nuxt": "^3.15.0",
     "nuxt-security": "^2.0.0",
+    "nuxt-server-utils": "^0.0.7",
     "nuxt-swiper": "^1.2.2",
     "pinia": "^2.2.2",
     "serpapi": "^2.1.0",
@@ -50,6 +51,7 @@
     "nuxt-icon": "^1.0.0-beta.7",
     "prettier": "^3.3.3",
     "tailwindcss": "^3.4.7",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "nuxt-server-utils": "version_number"
   }
 }
