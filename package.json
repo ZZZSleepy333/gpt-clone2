@@ -3,10 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "nuxt dev",
     "build": "nuxt build",
-    "dev": "npm run setup-and-dev",
-    "setup-and-dev": " npm run start-dev",
-    "start-dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
