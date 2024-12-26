@@ -33,6 +33,7 @@ export default defineNuxtConfig({
     "@nuxt/image",
   ],
   runtimeConfig: {
+    mongodbUri: "",
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE,
       mongodbUri: process.env.MONGODB_URI,
