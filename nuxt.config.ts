@@ -51,7 +51,7 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
-    moduleSideEffects: ["nuxt-server-utils"],
+    moduleSideEffects: ["nuxt-server-utils", "mongoose"],
     externals: {
       inline: ["@nuxt/kit"],
     },
