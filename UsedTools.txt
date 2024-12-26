@@ -1,0 +1,25 @@
+Thư viện
+- PapaParse: Dùng để Parse file excel (.csv) nhập vào thành JSOn và gửi lên DB
+- Fuse.js: Dù để hỗ trợ tìm kiếm câu trả lời cho câu hỏi của người dùng 
+- Axios: Thư viện hỗ trợ giao tiếp với bên server
+- TailwindCSS:
+
+Cơ sở dữ liệu
+- MongoDB
+
+Framework:
+- NuxtJS 3
+
+7d7c8950e7707e12e44f4c3f9b8cef8439fbf76c6be0a8b1b2a7e032a46386be
+
+ nitro: { devProxy: { "/api/search": { target: "~/server/api/search.js" } } },
+hooks: {
+    "nitro:config": (nitroConfig) => {
+      nitroConfig.handlers = nitroConfig.handlers || [];
+
+      nitroConfig.handlers.push({
+        route: "/api/search",
+        handler: "~/server/api/search.js",
+      });
+    },
+  },

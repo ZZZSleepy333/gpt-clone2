@@ -1,0 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Playwright+Deutschland+Grundschrift&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*,
+pre {
+  font-family: "Playwrite Deutschland Grundschrift", sans-serif;
+}
