@@ -26,7 +26,7 @@ export default defineNuxtConfig({
   modules: [
     "@nuxt/content",
     "@nuxt/icon",
-    "nuxt-server-utils",
+
     "@nuxt/ui",
     "nuxt-swiper",
     "@pinia/nuxt",
@@ -51,7 +51,7 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
-    moduleSideEffects: ["nuxt-server-utils", "mongoose"],
+    moduleSideEffects: ["mongoose"],
     externals: {
       inline: ["@nuxt/kit"],
     },
