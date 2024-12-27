@@ -192,8 +192,8 @@ const scrollToBottom = () => {
 };
 
 const smoothScrollToBottom = () => {
-  if (scrollContainer.value) {
-    const container = scrollContainer.value;
+  const container = document.querySelector(".chatscreen");
+  if (container) {
     container.scrollTo({
       top: container.scrollHeight,
       behavior: "smooth",
@@ -215,10 +215,12 @@ const handleClickSearch = async () => {
       await messageStore.saveConversation(messages.value);
     } finally {
       isLoading.value = false;
+      // Đảm bảo scroll sau khi tin nhắn đã được thêm vào và render
+      await nextTick();
+      setTimeout(() => {
+        smoothScrollToBottom();
+      }, 100);
     }
-
-    await nextTick();
-    smoothScrollToBottom();
   }
 };
 
