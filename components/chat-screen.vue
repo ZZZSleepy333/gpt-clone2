@@ -108,9 +108,11 @@ onMounted(async () => {
   if (userId) {
     await messageStore.fetchMessagesByUserID();
     messages.value = messageStore.messages;
+    console.log(userId);
+    await nextTick();
     setTimeout(() => {
       smoothScrollToBottom();
-    }, 300);
+    }, 200);
   } else {
     console.error("Không có userId");
   }
@@ -187,17 +189,21 @@ const messageContainer = ref(null);
 const scrollToBottom = () => {
   if (scrollContainer.value) {
     const container = scrollContainer.value;
-    container.scrollTop = container.scrollHeight;
+    setTimeout(() => {
+      container.scrollTop = container.scrollHeight;
+    }, 100);
   }
 };
 
 const smoothScrollToBottom = () => {
-  const container = document.querySelector(".chatscreen");
-  if (container) {
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: "smooth",
-    });
+  if (scrollContainer.value) {
+    const container = scrollContainer.value;
+    setTimeout(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
+    }, 100);
   }
 };
 
@@ -215,11 +221,8 @@ const handleClickSearch = async () => {
       await messageStore.saveConversation(messages.value);
     } finally {
       isLoading.value = false;
-      // Đảm bảo scroll sau khi tin nhắn đã được thêm vào và render
       await nextTick();
-      setTimeout(() => {
-        smoothScrollToBottom();
-      }, 100);
+      smoothScrollToBottom();
     }
   }
 };
@@ -304,10 +307,7 @@ pre {
 }
 
 .chatscreen {
-  padding-bottom: 100px;
-  overflow-y: auto;
-  height: calc(100vh - 100px);
-  scroll-behavior: smooth;
+  padding-bottom: 100px; /* Add space at bottom to prevent input overlap */
 }
 
 .mainscreen {
@@ -381,7 +381,6 @@ pre {
   margin: 0 5px;
   animation: bubble 0.6s infinite alternate;
   position: relative;
-  display: inline-block;
 }
 
 .loading-bubble::before,
@@ -394,7 +393,6 @@ pre {
   border-radius: 50%;
   background-color: #f77f00;
   animation: bubble 0.6s infinite alternate;
-  display: inline-block;
 }
 
 .loading-bubble::before {
