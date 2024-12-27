@@ -108,7 +108,9 @@ onMounted(async () => {
   if (userId) {
     await messageStore.fetchMessagesByUserID();
     messages.value = messageStore.messages;
-    console.log(userId);
+    setTimeout(() => {
+      smoothScrollToBottom();
+    }, 300);
   } else {
     console.error("Không có userId");
   }
@@ -300,7 +302,10 @@ pre {
 }
 
 .chatscreen {
-  padding-bottom: 100px; /* Add space at bottom to prevent input overlap */
+  padding-bottom: 100px;
+  overflow-y: auto;
+  height: calc(100vh - 100px);
+  scroll-behavior: smooth;
 }
 
 .mainscreen {
@@ -374,6 +379,7 @@ pre {
   margin: 0 5px;
   animation: bubble 0.6s infinite alternate;
   position: relative;
+  display: inline-block;
 }
 
 .loading-bubble::before,
@@ -386,6 +392,7 @@ pre {
   border-radius: 50%;
   background-color: #f77f00;
   animation: bubble 0.6s infinite alternate;
+  display: inline-block;
 }
 
 .loading-bubble::before {
