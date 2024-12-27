@@ -1,5 +1,6 @@
 export const useSendMessage = () => {
   const newMessage = ref("");
+  const isLoading = ref(false);
   const messages = useState("messages", () => [
     {
       userMessage: "",
@@ -38,7 +39,7 @@ export const useSendMessage = () => {
   //       }
   //     });
   //     for (let i = 0; i < searchData.length; i++) {
-  //       const resString = `Player: ${searchData[i].Player}\nMã lỗi: ${searchData[i].ErrCode}\nThông báo lỗi: ${searchData[i].ErrMessage}\nNguyên nhân:\n${searchData[i].Cause}\nHướng giải quyết cho khách hàng:\n${searchData[i].CustomerSolution}\nĐội xử lý:\n${searchData[i].DeveloperSolution}\nGhi chú thêm:\n${searchData[i].Note}`;
+  //       const resString = `Player: ${searchData[i].Player}\nMã lỗi: ${searchData[i].ErrCode}\nThông báo lỗi: ${searchData[i].ErrMessage}\nNguyên nhân:\n${searchData[i].Cause}\nHướng gi���i quyết cho khách hàng:\n${searchData[i].CustomerSolution}\nĐội xử lý:\n${searchData[i].DeveloperSolution}\nGhi chú thêm:\n${searchData[i].Note}`;
 
   //       responseList.push(resString);
   //     }
@@ -51,5 +52,5 @@ export const useSendMessage = () => {
   //   }
   // };
 
-  return { sendMessage, newMessage, messages };
+  return { sendMessage, newMessage, messages, isLoading };
 };

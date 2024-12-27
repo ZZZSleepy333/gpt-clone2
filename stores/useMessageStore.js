@@ -38,7 +38,8 @@ export const useMessageStore = defineStore("messageStore", {
     },
     async fetchMessagesByUserID() {
       const userID = localStorage.getItem("chatId");
-      console.log(userID);
+      console.log("Fetching messages for userID:", userID);
+
       if (!userID) {
         console.error("User ID is not available");
         return;
@@ -52,15 +53,23 @@ export const useMessageStore = defineStore("messageStore", {
             Accept: "application/json",
           },
         });
-        console.log(response);
+
+        // Log full response for debugging
+        console.log("API Response:", response);
+
         if (response.data.success) {
           this.messages = response.data.messages;
-          console.log(this.messages);
+          console.log("Fetched messages:", this.messages);
         } else {
-          console.error("Error fetching messages:", response.data.error);
+          console.error("Error details:", response.data);
+          throw new Error(response.data.error || "Unknown server error");
         }
       } catch (error) {
-        console.error("API fetch error:", error);
+        console.error(
+          "API fetch error:",
+          error.response?.data || error.message
+        );
+        throw error;
       }
     },
 

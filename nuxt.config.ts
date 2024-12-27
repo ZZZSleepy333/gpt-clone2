@@ -38,6 +38,7 @@ export default defineNuxtConfig({
       apiBase: process.env.NUXT_PUBLIC_API_BASE,
       mongodbUri: process.env.MONGODB_URI,
       serpAPI: process.env.SERP_API_KEY,
+      huggingFaceApiKey: process.env.HUGGING_FACE_API_KEY,
     },
   },
   app: {

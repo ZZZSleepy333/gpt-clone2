@@ -41,6 +41,10 @@
 Bạn có thể xem thêm thông tin tại: <a class=" underline  hover:text-blue-800 visited:text-purple-500" :href="message.botMessage.link">{{ message.botMessage.title }}</a></pre>
           </div>
         </div>
+
+        <div v-if="isLoading" class="flex justify-center my-4">
+          <div class="loading-bubble"></div>
+        </div>
       </div>
     </div>
 
@@ -83,14 +87,14 @@ import { useChatIDStore } from "~/stores/useChatID";
 import { getJson } from "serpapi";
 const modalStore = useModalStore();
 
-const { sendMessage, newMessage, messages } = useSendMessage();
+const { sendMessage, newMessage, messages, isLoading } = useSendMessage();
 const { search, fetchAllSnippets } = useFiltering();
 const ChatIDStore = useChatIDStore();
 
 const data = ref(null);
 
 const config = useRuntimeConfig();
-const isLoading = ref(true);
+//const isLoading = ref(true);
 const messageStore = useMessageStore();
 
 defineComponent({
@@ -202,8 +206,14 @@ const handleClickSearch = async () => {
     const input = newMessage.value;
     newMessage.value = "";
     console.log(input);
-    await fetchAllSnippets(input);
-    await messageStore.saveConversation(messages.value);
+
+    isLoading.value = true;
+    try {
+      await fetchAllSnippets(input);
+      await messageStore.saveConversation(messages.value);
+    } finally {
+      isLoading.value = false;
+    }
 
     await nextTick();
     smoothScrollToBottom();
@@ -352,7 +362,48 @@ pre {
 
 @media (min-width: 1024px) {
   .message-container {
-    width: 30vw;
+    width: 50vw;
+  }
+}
+
+.loading-bubble {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #f77f00;
+  margin: 0 5px;
+  animation: bubble 0.6s infinite alternate;
+  position: relative;
+}
+
+.loading-bubble::before,
+.loading-bubble::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #f77f00;
+  animation: bubble 0.6s infinite alternate;
+}
+
+.loading-bubble::before {
+  left: -30px;
+  animation-delay: -0.2s;
+}
+
+.loading-bubble::after {
+  left: 30px;
+  animation-delay: 0.2s;
+}
+
+@keyframes bubble {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-10px);
   }
 }
 </style>

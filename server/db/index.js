@@ -21,3 +21,14 @@ export const connectDB = async () => {
     process.exit(1);
   }
 };
+
+// Thêm hàm để kiểm tra kết nối
+export const checkConnection = async () => {
+  try {
+    await client.db().admin().ping();
+    return true;
+  } catch (error) {
+    console.error("Database connection check failed:", error);
+    return false;
+  }
+};

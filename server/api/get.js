@@ -1,5 +1,4 @@
-import { connectDB } from "../db";
-import Conversation from "../models/Conversation";
+import { MongoClient } from "mongodb";
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -9,15 +8,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    await connectDB();
+    const client = await MongoClient.connect(process.env.MONGODB_URI);
+    const db = client.db(process.env.MONGODB_DB_NAME);
 
-    const conversation = await Conversation.findOne({ userId: userID });
+    const conversation = await db
+      .collection("conversations")
+      .findOne({ userId: userID });
 
     console.log("Conversation data:", conversation);
 
     if (!conversation) {
       return { status: 404, message: "No conversation found for this user" };
     }
+
+    await client.close();
 
     return {
       status: 200,
