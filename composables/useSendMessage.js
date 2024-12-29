@@ -39,7 +39,7 @@ export const useSendMessage = () => {
   //       }
   //     });
   //     for (let i = 0; i < searchData.length; i++) {
-  //       const resString = `Player: ${searchData[i].Player}\nMã lỗi: ${searchData[i].ErrCode}\nThông báo lỗi: ${searchData[i].ErrMessage}\nNguyên nhân:\n${searchData[i].Cause}\nHướng gi���i quyết cho khách hàng:\n${searchData[i].CustomerSolution}\nĐội xử lý:\n${searchData[i].DeveloperSolution}\nGhi chú thêm:\n${searchData[i].Note}`;
+  //       const resString = `Player: ${searchData[i].Player}\nMã lỗi: ${searchData[i].ErrCode}\nThông báo lỗi: ${searchData[i].ErrMessage}\nNguyên nhân:\n${searchData[i].Cause}\nHướng giải quyết cho khách hàng:\n${searchData[i].CustomerSolution}\nĐội xử lý:\n${searchData[i].DeveloperSolution}\nGhi chú thêm:\n${searchData[i].Note}`;
 
   //       responseList.push(resString);
   //     }
@@ -51,6 +51,27 @@ export const useSendMessage = () => {
   //     sendMessage(searchString, "Sorry, I don't understand the question.");
   //   }
   // };
+
+  const formatDetailedResponse = (query, result) => {
+    return {
+      mainAnswer: {
+        content: result.bestMatch.snippet,
+        source: result.bestMatch.link,
+        confidence: result.bestMatch.score,
+      },
+      relatedInfo: {
+        category: result.additionalInfo.category,
+        relatedQuestions: result.additionalInfo.relatedQuestions,
+        suggestedDocs: result.additionalInfo.suggestions,
+      },
+      metadata: {
+        timestamp: Date.now(),
+        queryType: determineQueryType(query),
+        processingTime: result.processingTime,
+      },
+      actions: generateSuggestedActions(query, result),
+    };
+  };
 
   return { sendMessage, newMessage, messages, isLoading };
 };

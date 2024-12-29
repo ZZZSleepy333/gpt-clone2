@@ -33,12 +33,14 @@ export default defineNuxtConfig({
     "@nuxt/image",
   ],
   runtimeConfig: {
-    mongodbUri: "",
+    mongoUri: process.env.MONGODB_URI,
+    dbName: process.env.MONGODB_DB_NAME || "test",
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE,
       mongodbUri: process.env.MONGODB_URI,
       serpAPI: process.env.SERP_API_KEY,
       huggingFaceApiKey: process.env.HUGGING_FACE_API_KEY,
+      openaiApiKey: process.env.OPENAI_API_KEY,
     },
   },
   app: {
@@ -56,5 +58,8 @@ export default defineNuxtConfig({
     externals: {
       inline: ["@nuxt/kit"],
     },
+  },
+  build: {
+    transpile: ["@huggingface/inference"],
   },
 });
