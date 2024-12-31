@@ -8,7 +8,12 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const client = new MongoClient(config.mongoUri);
   const id = event.context.params?.id;
-  const user = JSON.parse(event.req.headers.authorization || "{}");
+  const user = JSON.parse(getHeaders(event).authorization || "{}");
+
+  console.log("User object:", user);
+  console.log("Authorization header:", getHeaders(event).authorization);
+  console.log("Parsed user object:", user);
+  console.log("User displayName:", user.displayName);
 
   try {
     await client.connect();
@@ -17,18 +22,12 @@ export default defineEventHandler(async (event) => {
 
     const body = await readBody(event);
 
-    // Ensure keyword is an array
-    if (typeof body.keyword === "string") {
-      body.keyword = body.keyword.split(",").map((k: any) => k.trim());
-    }
-
     await collection.updateOne(
       { _id: new ObjectId(id) },
       {
         $set: {
           ...body,
-          updatedBy: user.username,
-          updatedByName: user.displayName,
+          updatedBy: user.displayName,
           updatedAt: new Date(),
         },
       }

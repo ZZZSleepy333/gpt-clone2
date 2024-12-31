@@ -1,52 +1,159 @@
 <script setup>
-const { data: qas, refresh } = await useFetch("/api/qa");
+const user = ref(JSON.parse(localStorage.getItem("user") || "{}"));
+// console.log("Current user:", user.value);
+// console.log(user.value.displayName);
+
+const qas = ref([]);
+const loading = ref(false);
+
+// Hàm fetch data
+const fetchData = async () => {
+  try {
+    loading.value = true;
+    const response = await $fetch("/api/qa", {
+      headers: {
+        authorization: JSON.stringify(user.value),
+      },
+    });
+    // console.log("Fetched data:", response);
+    qas.value = response;
+  } catch (err) {
+    console.error("Error fetching data:", err);
+    error.value = "Có lỗi khi tải dữ liệu";
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Gọi fetchData khi component được tạo
+onMounted(() => {
+  fetchData();
+});
+
 const formData = ref({
   question: "",
   answer: "",
-  keyword: [],
+  keyword: "",
 });
 const editingId = ref(null);
 const error = ref(null);
 const success = ref(null);
 
+// Thêm các biến cho pagination
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+// Thêm computed để tính toán dữ liệu phân trang
+const paginatedQas = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return qas.value?.slice(start, end) || [];
+});
+
+const totalPages = computed(() => {
+  return Math.ceil((qas.value?.length || 0) / itemsPerPage);
+});
+
+// Hàm để truncate text
+const truncateText = (text, length = 50) => {
+  if (!text) return "";
+  return text.length > length ? text.slice(0, length) + "..." : text;
+};
+
+// Thêm methods cho pagination
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+};
+
+// Thêm computed property để kiểm tra form hợp lệ
+const isFormValid = computed(() => {
+  return (
+    formData.value.question?.trim() &&
+    formData.value.answer?.trim() &&
+    formData.value.keyword?.trim()
+  );
+});
+
+// Thêm methods cho pagination
 const handleSubmit = async () => {
+  if (!isFormValid.value) {
+    error.value = "Vui lòng điền đầy đủ thông tin";
+    return;
+  }
+
   try {
+    loading.value = true;
     error.value = null;
     success.value = null;
 
     if (editingId.value) {
       await $fetch(`/api/qa/${editingId.value}`, {
         method: "PUT",
+        headers: {
+          authorization: JSON.stringify(user.value),
+        },
         body: formData.value,
       });
       success.value = "Cập nhật câu hỏi thành công!";
     } else {
       await $fetch("/api/qa", {
         method: "POST",
+        headers: {
+          authorization: JSON.stringify(user.value),
+          "Content-Type": "application/json",
+        },
         body: formData.value,
       });
       success.value = "Thêm câu hỏi mới thành công!";
     }
 
-    formData.value = { question: "", answer: "", keyword: [] };
-    editingId.value = null;
-    refresh();
-
     setTimeout(() => {
       success.value = null;
     }, 3000);
-  } catch (error) {
+
+    // Fetch lại data sau khi thêm/sửa thành công
+    await fetchData();
+
+    // Reset form
+    formData.value = { question: "", answer: "", keyword: "" };
+    editingId.value = null;
+  } catch (err) {
+    console.error("Error in handleSubmit:", err);
     error.value = "Có lỗi xảy ra khi lưu dữ liệu";
-    console.error("Error saving data:", error);
+    setTimeout(() => {
+      error.value = null;
+    }, 3000);
+  } finally {
+    loading.value = false;
   }
+};
+
+const handleCancel = () => {
+  formData.value = { question: "", answer: "", keyword: "" };
+  editingId.value = null;
+  error.value = null;
+  success.value = null;
 };
 
 const handleDelete = async (id) => {
   if (confirm("Bạn có chắc chắn muốn xóa?")) {
     try {
-      await $fetch(`/api/qa/${id}`, { method: "DELETE" });
+      await $fetch(`/api/qa/${id}`, {
+        method: "DELETE",
+        headers: {
+          authorization: JSON.stringify(user.value),
+        },
+      });
       success.value = "Xóa câu hỏi thành công!";
-      refresh();
+      await fetchData(); // Fetch lại data sau khi xóa
 
       setTimeout(() => {
         success.value = null;
@@ -62,27 +169,25 @@ const handleEdit = (item) => {
   formData.value = {
     question: item.question,
     answer: item.answer,
-    keyword: item.keyword,
+    keyword: Array.isArray(item.keyword)
+      ? item.keyword.join(", ")
+      : item.keyword || "",
   };
   editingId.value = item._id;
 };
 
-const initSampleData = async () => {
-  try {
-    const response = await $fetch("/api/qa/seed", {
-      method: "POST",
-    });
-    console.log(response.message);
-    refresh();
-  } catch (error) {
-    console.error("Error initializing data:", error);
-  }
+// Hàm format date
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 };
-
-// Tự động khởi tạo khi load trang
-onMounted(() => {
-  initSampleData();
-});
 </script>
 
 <template>
@@ -99,45 +204,85 @@ onMounted(() => {
         >
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2"
-              >Câu hỏi</label
+              >Câu hỏi <span class="text-red-500">*</span></label
             >
             <input
               type="text"
               v-model="formData.question"
+              required
+              placeholder="Nhập câu hỏi"
               class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2"
-              >Câu trả lời</label
+              >Câu trả lời <span class="text-red-500">*</span></label
             >
             <textarea
               v-model="formData.answer"
               rows="4"
+              required
+              placeholder="Nhập câu trả lời"
               class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             ></textarea>
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2"
-              >Keywords</label
+              >Từ khóa <span class="text-red-500">*</span></label
             >
             <input
               type="text"
               v-model="formData.keyword"
-              @input="formData.keyword = $event.target.value.split(',')"
+              required
+              placeholder="Nhập từ khóa, phân cách bằng dấu phẩy"
               class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Nhập keywords, phân cách bằng dấu phẩy"
             />
+            <p class="mt-1 text-sm text-gray-500">
+              Các từ khóa cách nhau bởi dấu phẩy (,)
+            </p>
           </div>
 
-          <button
-            type="submit"
-            class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-          >
-            {{ editingId ? "Cập nhật" : "Thêm mới" }}
-          </button>
+          <div class="flex space-x-4">
+            <button
+              type="submit"
+              :disabled="!isFormValid || loading"
+              class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-md hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              <span v-if="loading" class="mr-2">
+                <svg
+                  class="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </span>
+              {{ editingId ? "Cập nhật" : "Thêm mới" }}
+            </button>
+
+            <button
+              type="button"
+              @click="handleCancel"
+              class="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
+            >
+              Huỷ
+            </button>
+          </div>
         </form>
       </div>
 
@@ -159,27 +304,22 @@ onMounted(() => {
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
               >
-                Keywords
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
-              >
                 Người tạo
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
               >
-                Thời gian tạo
+                Ngày tạo
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
               >
-                Cập nhật bởi
+                Người cập nhật
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
               >
-                Thời gian cập nhật
+                Ngày cập nhật
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
@@ -189,35 +329,32 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="item in qas" :key="item._id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-pre-wrap">
-                <span class="text-black">{{ item.question }}</span>
+            <tr
+              v-for="item in paginatedQas"
+              :key="item._id"
+              class="hover:bg-gray-50"
+            >
+              <td class="px-6 py-4">
+                <span class="text-black" :title="item.question">
+                  {{ truncateText(item.question, 50) }}
+                </span>
               </td>
-              <td class="px-6 py-4 whitespace-pre-wrap">
-                <span class="text-black">{{ item.answer }}</span>
+              <td class="px-6 py-4">
+                <span class="text-black" :title="item.answer">
+                  {{ truncateText(item.answer, 50) }}
+                </span>
               </td>
-              <td class="px-6 py-4 whitespace-pre-wrap">
-                <span class="text-black">{{ item.keyword.join(", ") }}</span>
+              <td class="px-6 py-4">
+                <span class="text-black">{{ item.createdBy }}</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-black">{{
-                  item.createdByName || item.createdBy
-                }}</span>
+              <td class="px-6 py-4">
+                <span class="text-black">{{ formatDate(item.createdAt) }}</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-black">{{
-                  new Date(item.createdAt).toLocaleString()
-                }}</span>
+              <td class="px-6 py-4">
+                <span class="text-black">{{ item.updatedBy }}</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-black">{{
-                  item.updatedByName || item.updatedBy
-                }}</span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="text-black">{{
-                  new Date(item.updatedAt).toLocaleString()
-                }}</span>
+              <td class="px-6 py-4">
+                <span class="text-black">{{ formatDate(item.updatedAt) }}</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button
@@ -236,8 +373,80 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+
+        <!-- Pagination -->
+        <div
+          class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between"
+        >
+          <div class="flex-1 flex justify-between sm:hidden">
+            <button
+              @click="prevPage"
+              :disabled="currentPage === 1"
+              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              Trước
+            </button>
+            <button
+              @click="nextPage"
+              :disabled="currentPage === totalPages"
+              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              Sau
+            </button>
+          </div>
+          <div
+            class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between"
+          >
+            <div>
+              <p class="text-sm text-gray-700">
+                Hiển thị
+                <span class="font-medium">{{
+                  (currentPage - 1) * itemsPerPage + 1
+                }}</span>
+                đến
+                <span class="font-medium">{{
+                  Math.min(currentPage * itemsPerPage, qas?.length || 0)
+                }}</span>
+                trong tổng số
+                <span class="font-medium">{{ qas?.length || 0 }}</span>
+                kết quả
+              </p>
+            </div>
+            <div>
+              <nav
+                class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+              >
+                <button
+                  @click="prevPage"
+                  :disabled="currentPage === 1"
+                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <span class="sr-only">Previous</span>
+                  &larr;
+                </button>
+                <span
+                  class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+                >
+                  {{ currentPage }} / {{ totalPages }}
+                </span>
+                <button
+                  @click="nextPage"
+                  :disabled="currentPage === totalPages"
+                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <span class="sr-only">Next</span>
+                  &rarr;
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- Snackbar -->
+    <Snackbar :show="!!success" :message="success" type="success" />
+    <Snackbar :show="!!error" :message="error" type="error" />
   </div>
 </template>
 
@@ -269,5 +478,19 @@ onMounted(() => {
 
 .animate-fade-in-out {
   animation: fadeInOut 3s ease-in-out;
+}
+
+/* Loading animation */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -1,17 +1,17 @@
 <template>
   <header class="bg-white shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16 items-center">
-        <div class="flex items-center">
-          <h1 class="text-xl font-bold text-gray-900">Hệ thống hỗ trợ Q&A</h1>
-        </div>
+    <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 items-center relative">
         <button
           title="Save and Open a new chat"
           @click="clearAllChats()"
-          class="text-3xl text-[black] mx-[5px]"
+          class="text-3xl text-[black] absolute left-0"
         >
           <i class="fa-regular fa-square-plus"></i>
         </button>
+        <div class="flex-1 flex justify-center">
+          <h1 class="text-xl font-bold text-gray-900">Hệ thống hỗ trợ Q&A</h1>
+        </div>
       </div>
     </div>
   </header>

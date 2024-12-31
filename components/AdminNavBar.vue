@@ -26,12 +26,12 @@ const handleLogout = () => {
           >
             Quản lý tài khoản
           </NuxtLink>
-          <NuxtLink
+          <!-- <NuxtLink
             to="/admin/password"
             class="flex items-center px-4 py-2 text-gray-700 hover:text-gray-900"
           >
             Đổi mật khẩu
-          </NuxtLink>
+          </NuxtLink> -->
         </div>
         <div class="flex items-center">
           <button

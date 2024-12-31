@@ -42,6 +42,7 @@
                   Bạn có thể xem thêm thông tin tại:
                   <a
                     :href="message.botMessage.link"
+                    target="_blank"
                     class="text-blue-600 hover:text-blue-800 underline visited:text-purple-600"
                   >
                     {{ message.botMessage.title }}
@@ -52,34 +53,28 @@
           </div>
 
           <!-- Loading indicator -->
-          <div v-if="isLoading" class="flex justify-center my-4">
-            <div class="flex space-x-2">
+          <div v-if="isLoading" class="flex justify-center my-4 px-4">
+            <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
               <div
-                class="w-3 h-3 bg-blue-500 rounded-full animate-bounce"
-              ></div>
-              <div
-                class="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-100"
-              ></div>
-              <div
-                class="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-200"
+                class="h-full bg-blue-500 rounded-full animate-progress-indeterminate"
               ></div>
             </div>
           </div>
         </div>
 
-        <!-- Input area - Fixed at bottom -->
+        <!-- Input area -->
         <div class="bg-white border-t border-gray-200 p-4">
-          <div class="max-w-7xl mx-auto flex gap-2">
+          <div class="w-full flex gap-2">
             <input
               v-model="newMessage"
               type="text"
-              class="text-white flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="flex-1 px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
               placeholder="Nhập câu hỏi của bạn..."
               @keyup.enter="handleClickSearch"
             />
             <button
               @click="handleClickSearch"
-              class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+              class="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
             >
               <i class="fas fa-paper-plane"></i>
             </button>
@@ -91,7 +86,7 @@
 </template>
 
 <script lang="js" setup>
-import { defineComponent, onMounted, ref, provide } from "vue";
+import { defineComponent, onMounted, ref, provide, watch } from "vue";
 import axios from "axios";
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
@@ -122,6 +117,66 @@ defineComponent({
 });
 
 const conversationId = localStorage.getItem("chatId");
+
+const scrollContainer = ref(null);
+
+// Cải thiện hàm smoothScrollToBottom
+const smoothScrollToBottom = () => {
+  if (scrollContainer.value) {
+    const container = scrollContainer.value;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: "smooth",
+    });
+  }
+};
+
+const handleClickSearch = async () => {
+  if (newMessage.value === undefined || newMessage.value === "") {
+    return;
+  }
+
+  const input = newMessage.value;
+  newMessage.value = "";
+  console.log(input);
+
+  isLoading.value = true;
+  // Scroll xuống ngay khi loader xuất hiện
+  await nextTick();
+  smoothScrollToBottom();
+
+  try {
+    await fetchAllSnippets(input);
+    await messageStore.saveConversation(messages.value);
+  } finally {
+    isLoading.value = false;
+    // Scroll xuống lần nữa sau khi có kết quả
+    await nextTick();
+    smoothScrollToBottom();
+  }
+};
+
+// Thêm watcher để theo dõi thay đổi của messages
+watch(
+  messages,
+  () => {
+    nextTick(() => {
+      smoothScrollToBottom();
+    });
+  },
+  { deep: true }
+);
+
+// Thêm watcher cho isLoading
+watch(isLoading, (newValue) => {
+  if (!newValue) {
+    // Khi loading kết thúc
+    nextTick(() => {
+      smoothScrollToBottom();
+    });
+  }
+});
+
 onMounted(async () => {
   const userId = localStorage.getItem("chatId");
 
@@ -130,30 +185,11 @@ onMounted(async () => {
     messages.value = messageStore.messages;
     console.log(userId);
     await nextTick();
-    setTimeout(() => {
-      smoothScrollToBottom();
-    }, 200);
+    smoothScrollToBottom();
   } else {
     console.error("Không có userId");
   }
 });
-// onMounted(async () => {
-//   try {
-//     const response = await axios.get(
-//       "https://script.google.com/macros/s/AKfycbzIs7xRy3VUkgx9A5kGcAypP3tBPH8sXAs7TVF9mBygVJsO9lXy7VRDMUc2o5kg2v2sFw/exec"
-//     );
-//     const platform = response.data.map((errorCode) => errorCode.Platform);
-
-//     platformChoiceOption.value = [...new Set(platform)];
-//     data.value = response.data;
-//     console.log(response.data);
-//   } catch (error) {
-//     console.error("Lỗi khi tải dữ liệu:", error);
-//   } finally {
-//     isLoading.value = false;
-//     FilteredData.value = data.value;
-//   }
-// });
 
 provide("data", data);
 
@@ -203,7 +239,6 @@ const handleSearch = async (queryInput) => {
   }
 };
 
-const scrollContainer = ref(null);
 const messageContainer = ref(null);
 
 const scrollToBottom = () => {
@@ -214,47 +249,6 @@ const scrollToBottom = () => {
     }, 100);
   }
 };
-
-const smoothScrollToBottom = () => {
-  if (scrollContainer.value) {
-    const container = scrollContainer.value;
-    setTimeout(() => {
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: "smooth",
-      });
-    }, 100);
-  }
-};
-
-const handleClickSearch = async () => {
-  if (newMessage.value === undefined || newMessage.value === "") {
-    console.log("");
-  } else {
-    const input = newMessage.value;
-    newMessage.value = "";
-    console.log(input);
-
-    isLoading.value = true;
-    try {
-      await fetchAllSnippets(input);
-      await messageStore.saveConversation(messages.value);
-    } finally {
-      isLoading.value = false;
-      await nextTick();
-      smoothScrollToBottom();
-    }
-  }
-};
-
-// Thêm hook onMounted để scroll khi component được mount
-onMounted(async () => {
-  // Đợi một chút để đảm bảo dữ liệu đã được load
-  await nextTick();
-  setTimeout(() => {
-    smoothScrollToBottom();
-  }, 100);
-});
 </script>
 
 <style scoped>
@@ -278,5 +272,24 @@ onMounted(async () => {
 
 .animate-bounce {
   animation: bounce 1s infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    width: 0%;
+    margin-left: 0%;
+  }
+  50% {
+    width: 75%;
+    margin-left: 0%;
+  }
+  100% {
+    width: 100%;
+    margin-left: 100%;
+  }
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
 }
 </style>

@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
     return {
       id: user._id,
       username: user.username,
+      displayName: user.displayName,
       role: user.role,
     };
   } catch (error) {

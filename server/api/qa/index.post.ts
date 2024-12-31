@@ -7,7 +7,7 @@ interface MongoError {
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const client = new MongoClient(config.mongoUri);
-  const user = JSON.parse(event.req.headers.authorization || "{}");
+  const user = JSON.parse(getHeaders(event).authorization || "{}");
 
   try {
     await client.connect();
@@ -23,11 +23,11 @@ export default defineEventHandler(async (event) => {
 
     const result = await collection.insertOne({
       ...body,
-      createdBy: user.username,
-      createdByName: user.displayName,
+      createdBy: user.displayName,
+
       createdAt: new Date(),
-      updatedBy: user.username,
-      updatedByName: user.displayName,
+      updatedBy: user.displayName,
+
       updatedAt: new Date(),
     });
 

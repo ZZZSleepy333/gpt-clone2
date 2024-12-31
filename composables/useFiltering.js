@@ -18,7 +18,7 @@ export const useFiltering = () => {
   const embedCache = new Map();
   const resultCache = new Map();
 
-  const getCachedEmbedding = async (text, retries = 3) => {
+  const getEmbedding = async (text, retries = 3) => {
     if (embedCache.has(text)) return embedCache.get(text);
 
     for (let i = 0; i < retries; i++) {
@@ -26,7 +26,7 @@ export const useFiltering = () => {
         const processedText = text.trim().replace(/\s+/g, " ").slice(0, 512);
 
         const embedding = await hf.featureExtraction({
-          model: "VoVanPhuc/sup-SimCSE-VietNamese-phobert-base",
+          model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
           inputs: processedText,
         });
 
@@ -92,8 +92,8 @@ export const useFiltering = () => {
 
         // 1. Semantic Similarity - Giảm trọng số xuống
         try {
-          const queryEmbed = await getCachedEmbedding(query);
-          const snippetEmbed = await getCachedEmbedding(snippet.snippet);
+          const queryEmbed = await getEmbedding(query);
+          const snippetEmbed = await getEmbedding(snippet.snippet);
 
           if (
             queryEmbed &&
@@ -134,11 +134,26 @@ export const useFiltering = () => {
         );
         totalScore += stringSimilarityScore * 0.1;
 
-        console.log(`Snippet ${index} score:`, totalScore.toFixed(2)); // Format số thập phân
+        // 5. Điểm cho answer_box và related_questions
+        if (snippet.source_type === "answer_box") {
+          totalScore += 0.2;
+        } else if (snippet.source_type === "related_question") {
+          totalScore += 0.15; // Thêm điểm cho related_questions
+        }
+
+        // 6. Thêm điểm theo thứ tự hiển thị (càng lên đầu càng nhiều điểm)
+        const positionBonus = Math.max(0, 0.1 - index * 0.01); // Giảm dần 0.01 điểm cho mỗi vị trí, tối đa 0.1
+        totalScore += positionBonus;
+
+        console.log(`Snippet ${index} score:`, totalScore.toFixed(2));
 
         if (totalScore > highestScore) {
           highestScore = totalScore;
-          bestMatch = snippet;
+          bestMatch = {
+            snippet: snippet.snippet,
+            link: snippet.link,
+            title: snippet.title,
+          };
         }
       }
 
@@ -146,14 +161,6 @@ export const useFiltering = () => {
       if (highestScore < 0.2) {
         console.log("No snippet met minimum score threshold");
         return null;
-      }
-
-      if (bestMatch) {
-        bestMatch = {
-          snippet: bestMatch.snippet,
-          link: bestMatch.link,
-          title: bestMatch.title,
-        };
       }
 
       resultCache.set(cacheKey, {
@@ -233,62 +240,11 @@ export const useFiltering = () => {
   };
 
   // Thêm hàm tìm kiếm trong collection QAs
-  const searchInQAs = async (query) => {
-    try {
-      const response = await fetch("/api/qas/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ query }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const data = await response.json();
-
-      // Nếu tìm thấy kết quả
-      if (data && data.length > 0) {
-        // Tìm kết quả có độ tương đồng cao nhất
-        const bestMatch = data.reduce((best, current) => {
-          const keywordSimilarity = stringSimilarity.findBestMatch(
-            query.toLowerCase(),
-            [
-              ...current.keyword.map((k) => k.toLowerCase()),
-              current.question.toLowerCase(),
-            ]
-          ).bestMatch.rating;
-
-          if (!best || keywordSimilarity > best.similarity) {
-            return { ...current, similarity: keywordSimilarity };
-          }
-          return best;
-        }, null);
-
-        if (bestMatch && bestMatch.similarity > 0.3) {
-          // Ngưỡng độ tương đồng
-          return {
-            snippet: bestMatch.answer,
-            title: bestMatch.question,
-            link: "", // Có thể thêm link nếu cần
-            source: "local", // Đánh dấu nguồn là từ database local
-          };
-        }
-      }
-
-      return null; // Không tìm thấy kết quả phù hợp
-    } catch (error) {
-      console.error("Error searching in QAs:", error);
-      return null;
-    }
-  };
 
   const searchInFAQs = async (query) => {
     try {
-      // 1. Lấy embedding của query
-      const queryEmbed = await getCachedEmbedding(query);
+      // 1. Lấy embedding của query với mô hình mới
+      const queryEmbed = await getEmbedding(query);
 
       // 2. Gọi API để lấy tất cả FAQs
       const response = await fetch("/api/faqs/search", {
@@ -315,7 +271,7 @@ export const useFiltering = () => {
         faqs.map(async (faq) => {
           let totalScore = 0;
 
-          // 3.1. Semantic Similarity nếu có embedding
+          // 3.1. Semantic Similarity với embedding
           if (queryEmbed && faq.embedding) {
             const similarityScore = cosineSimilarity(queryEmbed, faq.embedding);
             if (!isNaN(similarityScore)) {
@@ -326,13 +282,10 @@ export const useFiltering = () => {
           // 3.2. Keyword Matching
           const keywords = query.toLowerCase().trim().split(/\s+/);
           let keywordScore = 0;
-
-          // Kiểm tra từng keyword trong câu hỏi
           keywords.forEach((keyword) => {
             if (faq.question.toLowerCase().includes(keyword)) {
               keywordScore += 0.15;
             }
-            // Kiểm tra trong mảng keyword của FAQ
             if (faq.keyword.some((k) => k.toLowerCase().includes(keyword))) {
               keywordScore += 0.2;
             }
@@ -356,13 +309,13 @@ export const useFiltering = () => {
       // 4. Sắp xếp và lấy kết quả tốt nhất
       const bestMatch = scoredFaqs
         .sort((a, b) => b.score - a.score)
-        .find((faq) => faq.score > 0.3); // Ngưỡng điểm tối thiểu
+        .find((faq) => faq.score > 0.3);
 
       if (bestMatch) {
         return {
           snippet: bestMatch.answer,
-          title: bestMatch.question,
-          link: "", // Có thể thêm link nếu có
+          title: "",
+          link: "",
           source: "faq",
           score: bestMatch.score,
         };
@@ -390,7 +343,7 @@ export const useFiltering = () => {
         return;
       }
 
-      // Tìm kiếm trong FAQs trước
+      // Tìm kiếm trong FAQs
       const faqResult = await searchInFAQs(query);
       if (faqResult) {
         console.log("Found result in FAQs with score:", faqResult.score);
@@ -398,12 +351,11 @@ export const useFiltering = () => {
         return;
       }
 
-      // Nếu không tìm thấy trong FAQs, thông báo cho người dùng
-      // Nếu không tìm thấy trong FAQs, tiếp tục với serpAPI
       const config = useRuntimeConfig();
       const response = await axios.get("https://serpapi.com/search", {
         params: {
           q: query,
+          engine: "duckduckgo",
           api_key: config.public.serpAPI,
         },
         headers: {
@@ -414,25 +366,12 @@ export const useFiltering = () => {
       const data = response.data;
       let snippets = [];
 
-      // Xử lý kết quả từ DuckDuckGo
       if (data.organic_results) {
         snippets = data.organic_results.map((result) => ({
           snippet: result.snippet || "",
           title: result.title || "",
           link: result.link || "",
         }));
-      }
-
-      // Thêm related_questions nếu có
-      if (data.related_questions) {
-        snippets = [
-          ...snippets,
-          ...data.related_questions.map((question) => ({
-            snippet: question.answer || "",
-            title: question.question || "",
-            link: question.link || "",
-          })),
-        ];
       }
 
       console.log("All Snippets:", snippets);
@@ -444,7 +383,6 @@ export const useFiltering = () => {
           {
             bestMatch: bestSnippet,
             additionalInfo: {
-              relatedQuestions: data.related_questions || [],
               conversationHistory: relevantHistory,
             },
           },
@@ -468,45 +406,7 @@ export const useFiltering = () => {
   };
 
   const humanizeResponse = async (response, query) => {
-    try {
-      const greetings = [
-        "Để trả lời câu hỏi của bạn,",
-        "Tôi xin chia sẻ rằng,",
-        "Theo thông tin tôi có,",
-        "Tôi hiểu rằng,",
-      ];
-
-      const followUps = [
-        "Bạn có thêm câu hỏi gì không?",
-        "Tôi có thể giúp gì thêm cho bạn?",
-        "Bạn muốn biết thêm chi tiết gì không?",
-        "Hãy hỏi thêm nếu bạn cần nhé!",
-      ];
-
-      const greeting = greetings[Math.floor(Math.random() * greetings.length)];
-      const followUp = followUps[Math.floor(Math.random() * followUps.length)];
-
-      let humanizedSnippet = `${greeting} ${response.bestMatch.snippet} \n\n${followUp}`;
-
-      // Thêm câu hỏi liên quan nếu có
-      if (response.additionalInfo?.relatedQuestions?.length > 0) {
-        humanizedSnippet += "\n\nBạn có thể quan tâm đến:";
-        response.additionalInfo.relatedQuestions.slice(0, 3).forEach((q) => {
-          humanizedSnippet += `\n• ${q.question}`;
-        });
-      }
-
-      return {
-        ...response,
-        bestMatch: {
-          ...response.bestMatch,
-          snippet: humanizedSnippet,
-        },
-      };
-    } catch (error) {
-      console.error("Error in humanizing response:", error);
-      return response;
-    }
+    return response; // Trả về response gốc không qua xử lý
   };
 
   return {

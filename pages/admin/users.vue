@@ -13,24 +13,65 @@ const formData = ref({
 const editingId = ref(null);
 const error = ref(null);
 const success = ref(null);
+const loading = ref(false);
+const showSnackbar = ref(false);
+const snackbarMessage = ref("");
+const snackbarType = ref("success");
+
+const isFormValid = computed(() => {
+  const requiredFieldsValid =
+    formData.value.username?.trim() &&
+    formData.value.displayName?.trim() &&
+    formData.value.role?.trim();
+
+  if (editingId.value) {
+    return requiredFieldsValid;
+  } else {
+    return requiredFieldsValid && formData.value.password?.trim();
+  }
+});
+
+const showSuccessMessage = (message) => {
+  snackbarMessage.value = message;
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+  setTimeout(() => {
+    showSnackbar.value = false;
+  }, 3000);
+};
 
 const handleSubmit = async () => {
+  if (!isFormValid.value) {
+    error.value = "Vui lòng điền đầy đủ thông tin bắt buộc";
+    return;
+  }
+
   try {
+    loading.value = true;
     error.value = null;
-    success.value = null;
 
     if (editingId.value) {
+      const updateData = {
+        username: formData.value.username,
+        displayName: formData.value.displayName,
+        role: formData.value.role,
+      };
+
+      if (formData.value.password?.trim()) {
+        updateData.password = formData.value.password;
+      }
+
       await $fetch(`/api/users/${editingId.value}`, {
         method: "PUT",
-        body: formData.value,
+        body: updateData,
       });
-      success.value = "Cập nhật tài khoản thành công!";
+      showSuccessMessage("Cập nhật tài khoản thành công!");
     } else {
       await $fetch("/api/users", {
         method: "POST",
         body: formData.value,
       });
-      success.value = "Thêm tài khoản mới thành công!";
+      showSuccessMessage("Thêm tài khoản mới thành công!");
     }
 
     formData.value = {
@@ -41,13 +82,28 @@ const handleSubmit = async () => {
     };
     editingId.value = null;
     refresh();
-
-    setTimeout(() => {
-      success.value = null;
-    }, 3000);
   } catch (err) {
-    error.value = err.data?.message || "Có lỗi xảy ra";
+    console.error("Error in handleSubmit:", err);
+    if (err.statusCode === 400 && err.data?.message) {
+      error.value = err.data.message;
+    } else {
+      error.value = "Có lỗi xảy ra, vui lòng thử lại";
+    }
+  } finally {
+    loading.value = false;
   }
+};
+
+const handleCancel = () => {
+  formData.value = {
+    username: "",
+    displayName: "",
+    password: "",
+    role: "staff",
+  };
+  editingId.value = null;
+  error.value = null;
+  success.value = null;
 };
 
 const handleEdit = (user) => {
@@ -81,13 +137,13 @@ const handleDelete = async (id) => {
   <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
     <AdminNavBar />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="bg-white rounded-xl shadow-lg overflow-hidden p-6">
+      <div class="rounded-xl overflow-hidden p-6">
         <h2 class="text-3xl font-bold text-gray-800 mb-8">Quản lý tài khoản</h2>
 
-        <!-- Thông báo -->
+        <!-- Thông báo lỗi -->
         <div
           v-if="error"
-          class="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded"
+          class="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded animate-fade-in"
         >
           <div class="flex">
             <div class="flex-shrink-0">
@@ -140,36 +196,39 @@ const handleDelete = async (id) => {
         >
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Tên đăng nhập
+              Tên đăng nhập <span class="text-red-500">*</span>
             </label>
             <input
               type="text"
               v-model="formData.username"
-              class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+              placeholder="Nhập tên đăng nhập"
+              class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Tên hiển thị
+              Tên hiển thị <span class="text-red-500">*</span>
             </label>
             <input
               type="text"
               v-model="formData.displayName"
-              class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+              placeholder="Nhập tên hiển thị"
+              class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Mật khẩu
+              Mật khẩu <span v-if="!editingId" class="text-red-500">*</span>
             </label>
             <input
               type="password"
               v-model="formData.password"
               :required="!editingId"
+              placeholder="Nhập mật khẩu"
               class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <p v-if="editingId" class="mt-1 text-sm text-gray-500">
@@ -179,23 +238,58 @@ const handleDelete = async (id) => {
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Vai trò
+              Vai trò <span class="text-red-500">*</span>
             </label>
             <select
               v-model="formData.role"
-              class="w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+              class="text-black w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
+              <option value="">Chọn vai trò</option>
               <option value="staff">Nhân viên</option>
               <option value="manager">Quản lý</option>
             </select>
           </div>
 
-          <button
-            type="submit"
-            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-          >
-            {{ editingId ? "Cập nhật" : "Thêm mới" }}
-          </button>
+          <div class="flex space-x-4">
+            <button
+              type="submit"
+              :disabled="!isFormValid || loading"
+              class="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span v-if="loading" class="mr-2">
+                <svg
+                  class="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </span>
+              {{ editingId ? "Cập nhật" : "Thêm mới" }}
+            </button>
+
+            <button
+              type="button"
+              @click="handleCancel"
+              class="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
+            >
+              Huỷ
+            </button>
+          </div>
         </form>
 
         <!-- Table -->
@@ -258,6 +352,13 @@ const handleDelete = async (id) => {
             </tbody>
           </table>
         </div>
+
+        <!-- Snackbar cho thông báo thành công -->
+        <Snackbar
+          :show="showSnackbar"
+          :message="snackbarMessage"
+          :type="snackbarType"
+        />
       </div>
     </div>
   </div>
