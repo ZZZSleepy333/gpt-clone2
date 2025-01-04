@@ -1,4 +1,9 @@
 <script setup>
+import { useAutoLogout } from "~/composables/useAutoLogout";
+
+// Tự động logout sau 30 phút không hoạt động
+useAutoLogout(30);
+
 const user = ref(JSON.parse(localStorage.getItem("user") || "{}"));
 
 const qas = ref([]);

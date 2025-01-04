@@ -21,7 +21,14 @@
               <div
                 class="max-w-[80%] lg:max-w-[60%] bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg shadow-md p-4"
               >
-                <pre class="whitespace-pre-wrap">{{ message.userMessage }}</pre>
+                <div class="flex justify-between items-start gap-2">
+                  <div class="flex gap-2 text-white">
+                    <CopyButton :text="message.userMessage" />
+                  </div>
+                  <pre class="whitespace-pre-wrap">{{
+                    message.userMessage
+                  }}</pre>
+                </div>
               </div>
             </div>
 
@@ -30,9 +37,18 @@
               <div
                 class="max-w-[80%] lg:max-w-[60%] bg-white rounded-lg shadow-md p-4"
               >
-                <pre class="whitespace-pre-wrap text-gray-800">{{
-                  message.botMessage.snippet
-                }}</pre>
+                <div class="flex justify-between items-start gap-2">
+                  <pre class="whitespace-pre-wrap text-gray-800">{{
+                    message.botMessage.snippet
+                  }}</pre>
+                  <div class="flex gap-2 text-black">
+                    <CopyButton :text="message.botMessage.snippet" />
+                    <ReportButton
+                      :message-id="message.id"
+                      class="text-sm text-gray-500 hover:text-red-500"
+                    />
+                  </div>
+                </div>
               </div>
               <div
                 v-if="message.botMessage.title !== ''"
@@ -100,6 +116,8 @@ import { useModalStore } from "~/stores/modal";
 import { useMessageStore } from "~/stores/useMessageStore";
 import { useChatIDStore } from "~/stores/useChatID";
 import { getJson } from "serpapi";
+import ReportButton from "~/components/ReportButton.vue";
+import CopyButton from "~/components/CopyButton.vue";
 const modalStore = useModalStore();
 
 const { sendMessage, newMessage, messages, isLoading } = useSendMessage();

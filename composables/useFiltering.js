@@ -15,20 +15,32 @@ export const useFiltering = () => {
 
   const embedCache = new Map();
   const resultCache = new Map();
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
   const getEmbedding = async (text, retries = 3) => {
-    if (embedCache.has(text)) return embedCache.get(text);
+    const cacheKey = text.trim().toLowerCase();
+
+    // Kiểm tra cache và TTL
+    if (embedCache.has(cacheKey)) {
+      const cached = embedCache.get(cacheKey);
+      if (Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.embedding;
+      }
+    }
 
     for (let i = 0; i < retries; i++) {
       try {
         const processedText = text.trim().replace(/\s+/g, " ").slice(0, 512);
-
         const embedding = await hf.featureExtraction({
           model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
           inputs: processedText,
         });
 
-        embedCache.set(text, embedding);
+        // Lưu cache với timestamp
+        embedCache.set(cacheKey, {
+          embedding,
+          timestamp: Date.now(),
+        });
         return embedding;
       } catch (error) {
         console.error(`Attempt ${i + 1} failed:`, error);
@@ -76,87 +88,100 @@ export const useFiltering = () => {
       const cacheKey = query.toLowerCase().trim();
       if (resultCache.has(cacheKey)) {
         const cached = resultCache.get(cacheKey);
-        if (Date.now() - cached.timestamp < 3600000) return cached.result;
+        if (Date.now() - cached.timestamp < CACHE_TTL) return cached.result;
       }
+
+      // Tính toán embeddings song song
+      const queryEmbed = getEmbedding(query);
+      const snippetEmbeddings = await Promise.all(
+        snippets.map((snippet) =>
+          snippet && snippet.snippet ? getEmbedding(snippet.snippet) : null
+        )
+      );
+
+      const queryEmbedResult = await queryEmbed;
 
       let bestMatch = null;
       let highestScore = -1;
 
-      for (const [index, snippet] of snippets.entries()) {
-        if (!snippet || !snippet.snippet) continue;
+      // Xử lý song song các snippets
+      const scores = await Promise.all(
+        snippets.map(async (snippet, index) => {
+          if (!snippet || !snippet.snippet) return null;
 
-        let totalScore = 0;
-        const snippetLower = snippet.snippet.toLowerCase();
+          let totalScore = 0;
+          const snippetLower = snippet.snippet.toLowerCase();
+          const snippetEmbed = snippetEmbeddings[index];
 
-        // 1. Semantic Similarity - Giảm trọng số xuống
-        try {
-          const queryEmbed = await getEmbedding(query);
-          const snippetEmbed = await getEmbedding(snippet.snippet);
-
-          if (
-            queryEmbed &&
-            snippetEmbed &&
-            Array.isArray(queryEmbed) &&
-            Array.isArray(snippetEmbed)
-          ) {
-            const similarityScore = cosineSimilarity(queryEmbed, snippetEmbed);
+          // Tính điểm semantic similarity
+          if (queryEmbedResult && snippetEmbed) {
+            const similarityScore = cosineSimilarity(
+              queryEmbedResult,
+              snippetEmbed
+            );
             if (!isNaN(similarityScore)) {
-              totalScore += similarityScore * 0.4; // Giảm từ 0.6 xuống 0.4
+              totalScore += similarityScore * 0.4;
             }
           }
-        } catch (error) {
-          console.error("Error calculating semantic similarity:", error);
-          totalScore = 0;
-        }
 
-        // 2. Keyword matching - Điều chỉnh cách tính điểm
-        const keywords = query.toLowerCase().trim().split(/\s+/);
-        let keywordScore = 0;
-        keywords.forEach((keyword) => {
-          if (keyword.length > 2 && snippetLower.includes(keyword)) {
-            keywordScore += 0.15; // Giảm điểm mỗi keyword
+          // 2. Keyword matching - Điều chỉnh cách tính điểm
+          const keywords = query.toLowerCase().trim().split(/\s+/);
+          let keywordScore = 0;
+          keywords.forEach((keyword) => {
+            if (keyword.length > 2 && snippetLower.includes(keyword)) {
+              keywordScore += 0.15; // Giảm điểm mỗi keyword
+            }
+          });
+          totalScore += Math.min(0.4, keywordScore); // Giới hạn tối đa điểm keyword
+
+          // 3. Length score - Điều chỉnh thang điểm
+          const wordCount = snippet.snippet.split(/\s+/).length;
+          if (wordCount > 20 && wordCount < 200) {
+            totalScore += 0.1; // Giảm từ 0.2 xuống 0.1
           }
-        });
-        totalScore += Math.min(0.4, keywordScore); // Giới hạn tối đa điểm keyword
 
-        // 3. Length score - Điều chỉnh thang điểm
-        const wordCount = snippet.snippet.split(/\s+/).length;
-        if (wordCount > 20 && wordCount < 200) {
-          totalScore += 0.1; // Giảm từ 0.2 xuống 0.1
-        }
+          // 4. Thêm điểm cho độ tương đồng chuỗi
+          const stringSimilarityScore = stringSimilarity.compareTwoStrings(
+            query.toLowerCase(),
+            snippetLower
+          );
+          totalScore += stringSimilarityScore * 0.1;
 
-        // 4. Thêm điểm cho độ tương đồng chuỗi
-        const stringSimilarityScore = stringSimilarity.compareTwoStrings(
-          query.toLowerCase(),
-          snippetLower
+          // 5. Điểm cho answer_box và related_questions
+          if (snippet.source_type === "answer_box") {
+            totalScore += 0.2;
+          } else if (snippet.source_type === "related_question") {
+            totalScore += 0.15; // Thêm điểm cho related_questions
+          }
+
+          // 6. Thêm điểm theo thứ tự hiển thị (càng lên đầu càng nhiều điểm)
+          const positionBonus = Math.max(0, 0.1 - index * 0.01); // Giảm dần 0.01 điểm cho mỗi vị trí, tối đa 0.1
+          totalScore += positionBonus;
+
+          console.log(`Snippet ${index} score:`, totalScore.toFixed(2));
+
+          return { score: totalScore, snippet };
+        })
+      );
+
+      // Tìm kết quả tốt nhất
+      const bestResult = scores
+        .filter((result) => result && result.score > 0.2)
+        .reduce(
+          (best, current) => (current.score > best.score ? current : best),
+          { score: -1 }
         );
-        totalScore += stringSimilarityScore * 0.1;
 
-        // 5. Điểm cho answer_box và related_questions
-        if (snippet.source_type === "answer_box") {
-          totalScore += 0.2;
-        } else if (snippet.source_type === "related_question") {
-          totalScore += 0.15; // Thêm điểm cho related_questions
-        }
-
-        // 6. Thêm điểm theo thứ tự hiển thị (càng lên đầu càng nhiều điểm)
-        const positionBonus = Math.max(0, 0.1 - index * 0.01); // Giảm dần 0.01 điểm cho mỗi vị trí, tối đa 0.1
-        totalScore += positionBonus;
-
-        console.log(`Snippet ${index} score:`, totalScore.toFixed(2));
-
-        if (totalScore > highestScore) {
-          highestScore = totalScore;
-          bestMatch = {
-            snippet: snippet.snippet,
-            link: snippet.link,
-            title: snippet.title,
-          };
-        }
+      if (bestResult.score > -1) {
+        bestMatch = {
+          snippet: bestResult.snippet.snippet,
+          link: bestResult.snippet.link,
+          title: bestResult.snippet.title,
+        };
       }
 
       // Điều chỉnh ngưỡng điểm tối thiểu
-      if (highestScore < 0.2) {
+      if (bestMatch && bestMatch.score < 0.2) {
         console.log("No snippet met minimum score threshold");
         return null;
       }
@@ -319,17 +344,31 @@ export const useFiltering = () => {
 
   const fetchAllSnippets = async (query) => {
     try {
-      const validation = validateQuery(query);
-      if (!validation.isValid) {
-        sendMessage(query, {
-          title: "",
-          link: "",
-          snippet: validation.message,
-        });
-        return;
+      // Kiểm tra cache trước
+      const cacheKey = query.toLowerCase().trim();
+      if (resultCache.has(cacheKey)) {
+        const cached = resultCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < CACHE_TTL) {
+          sendMessage(query, cached.result);
+          return;
+        }
       }
 
-      const faqResult = await searchInFAQs(query);
+      // Chạy song song FAQ search và SERP search
+      const [faqResult, serpResponse] = await Promise.all([
+        searchInFAQs(query),
+        axios.get("https://serpapi.com/search", {
+          params: {
+            q: query,
+            engine: "duckduckgo",
+            api_key: config.public.serpAPI,
+          },
+          headers: {
+            Accept: "application/json",
+          },
+        }),
+      ]);
+
       if (faqResult) {
         console.log("Found result in FAQs with score:", faqResult.score);
         sendMessage(query, faqResult);
@@ -337,19 +376,7 @@ export const useFiltering = () => {
         return;
       }
 
-      const config = useRuntimeConfig();
-      const response = await axios.get("https://serpapi.com/search", {
-        params: {
-          q: query,
-          engine: "duckduckgo",
-          api_key: config.public.serpAPI,
-        },
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      const data = response.data;
+      const data = serpResponse.data;
       let snippets = [];
 
       if (data.organic_results) {
