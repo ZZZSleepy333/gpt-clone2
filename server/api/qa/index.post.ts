@@ -16,7 +16,6 @@ export default defineEventHandler(async (event) => {
 
     const body = await readBody(event);
 
-    // Ensure keyword is an array
     if (typeof body.keyword === "string") {
       body.keyword = body.keyword.split(",").map((k: any) => k.trim());
     }

@@ -1,6 +1,5 @@
 import { MongoClient } from "mongodb";
 
-// Hàm lấy FAQs từ MongoDB
 const getFaqs = async () => {
   try {
     const client = await MongoClient.connect(process.env.MONGODB_URI);
@@ -11,7 +10,7 @@ const getFaqs = async () => {
 
     console.log("Successfully fetched FAQs from MongoDB:");
     console.log(`Total FAQs found: ${faqs.length}`);
-    console.log("Sample FAQ:", faqs[0]); // Hiển thị FAQ đầu tiên làm mẫu
+    console.log("Sample FAQ:", faqs[0]);
 
     await client.close();
     return faqs;
@@ -28,13 +27,11 @@ export default defineEventHandler(async (event) => {
 
     console.log("Searching for query:", query);
 
-    // Lấy tất cả FAQs từ MongoDB
     const faqs = await getFaqs();
 
-    // Filter sơ bộ để giảm số lượng FAQs cần xử lý
     const filteredFaqs = faqs.filter((faq) => {
       const queryLower = query.toLowerCase();
-      // Kiểm tra nếu keyword là undefined thì gán mảng rỗng
+
       const keywords = faq.keyword || [];
       return (
         keywords.some((k) => queryLower.includes(k.toLowerCase())) ||

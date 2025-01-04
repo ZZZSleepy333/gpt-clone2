@@ -38,9 +38,6 @@ const handleSubmit = async () => {
   }
 };
 
-// Tự động khởi tạo khi load trang
-
-// Tính năng tự động reset số lần đăng nhập sai sau 5 phút
 let resetTimer;
 watch(loginAttempts, (newValue) => {
   if (newValue > 0) {
@@ -50,7 +47,7 @@ watch(loginAttempts, (newValue) => {
         loginAttempts.value = 0;
       },
       5 * 60 * 1000
-    ); // 5 phút
+    );
   }
 });
 

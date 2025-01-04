@@ -5,7 +5,6 @@ export const useUserPreferences = () => {
   const userInterests = ref(new Set());
   const categoryPreferences = ref({});
 
-  // Theo dõi và cập nhật sở thích người dùng
   const updateUserInterests = (query, selectedResult) => {
     const categories = categorizeQuestion(query);
 
@@ -19,20 +18,17 @@ export const useUserPreferences = () => {
       }
     });
 
-    // Cập nhật lịch sử tìm kiếm
     searchHistory.value.push({
       query,
       timestamp: Date.now(),
       category: Object.entries(categories).sort(([, a], [, b]) => b - a)[0][0],
     });
 
-    // Giới hạn lịch sử
     if (searchHistory.value.length > 50) {
       searchHistory.value.shift();
     }
   };
 
-  // Lấy gợi ý dựa trên sở thích
   const getPersonalizedSuggestions = () => {
     const topCategories = Object.entries(categoryPreferences.value)
       .sort(([, a], [, b]) => b - a)

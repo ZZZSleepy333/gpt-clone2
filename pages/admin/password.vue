@@ -14,14 +14,17 @@ const showSnackbar = ref(false);
 const snackbarMessage = ref("");
 const snackbarType = ref("success");
 
-// Thêm computed để kiểm tra mật khẩu khớp nhau
 const passwordsMatch = computed(() => {
   return formData.value.newPassword === formData.value.confirmPassword;
 });
 
 const handleSubmit = async () => {
   try {
-    // Kiểm tra mật khẩu xác nhận - hiển thị lỗi trực tiếp dưới input, không dùng snackbar
+    if (formData.value.newPassword.length < 6) {
+      error.value = "Mật khẩu phải có ít nhất 6 ký tự";
+      return;
+    }
+
     if (!passwordsMatch.value) {
       error.value = "Mật khẩu xác nhận không khớp với mật khẩu mới";
       return;
@@ -38,7 +41,14 @@ const handleSubmit = async () => {
       },
     });
 
-    // Hiển thị thông báo thành công bằng snackbar
+    if (response.error || response.statusCode >= 400) {
+      throw createError({
+        statusCode: response.statusCode || 400,
+        message: response.message || "Có lỗi xảy ra khi đặt lại mật khẩu",
+      });
+    }
+
+    success.value = true;
     snackbarMessage.value = "Đặt lại mật khẩu thành công!";
     snackbarType.value = "success";
     showSnackbar.value = true;
@@ -55,14 +65,27 @@ const handleSubmit = async () => {
     }, 3000);
   } catch (err) {
     console.error("Reset password error:", err);
-    // Xử lý các loại lỗi từ server - hiển thị trong form, không dùng snackbar
-    if (err.response?.status === 404) {
-      error.value = "Không tìm thấy tài khoản với tên đăng nhập này";
-    } else if (err.response?.status === 400) {
-      error.value = "Thông tin không hợp lệ, vui lòng kiểm tra lại";
-    } else {
-      error.value = err.data?.message || "Có lỗi xảy ra khi đặt lại mật khẩu";
+
+    error.value = err.message || "Có lỗi xảy ra khi đặt lại mật khẩu";
+
+    let snackbarError = "";
+    switch (err.statusCode) {
+      case 404:
+        snackbarError = "Tài khoản không tồn tại";
+        break;
+      case 400:
+        snackbarError = "Không thể đặt lại mật khẩu";
+        break;
+      case 500:
+        snackbarError = "Lỗi hệ thống";
+        break;
+      default:
+        snackbarError = "Có lỗi xảy ra";
     }
+
+    snackbarMessage.value = snackbarError;
+    snackbarType.value = "error";
+    showSnackbar.value = true;
   } finally {
     loading.value = false;
   }
@@ -72,7 +95,6 @@ const handleCancel = () => {
   navigateTo("/login");
 };
 
-// Thêm watch để reset error khi người dùng thay đổi input
 watch(
   () => formData.value.confirmPassword,
   (newVal) => {
@@ -86,13 +108,13 @@ watch(
 
 watch(
   () => formData.value.newPassword,
-  () => {
-    if (formData.value.confirmPassword) {
-      if (!passwordsMatch.value) {
-        error.value = "Mật khẩu xác nhận không khớp với mật khẩu mới";
-      } else {
-        error.value = null;
-      }
+  (newVal) => {
+    if (newVal.length > 0 && newVal.length < 6) {
+      error.value = "Mật khẩu phải có ít nhất 6 ký tự";
+    } else if (formData.value.confirmPassword && !passwordsMatch.value) {
+      error.value = "Mật khẩu xác nhận không khớp với mật khẩu mới";
+    } else {
+      error.value = null;
     }
   }
 );

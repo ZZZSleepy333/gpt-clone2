@@ -11,10 +11,9 @@ export const useFiltering = () => {
   const { sendMessage } = useSendMessage();
   const config = useRuntimeConfig();
   const hf = new HfInference(config.public.huggingFaceApiKey);
-  const { addToHistory, updateContext, getRelevantHistory, currentContext } =
-    useConversationContext();
+  // const { addToHistory, updateContext, getRelevantHistory, currentContext } =
+  //   useConversationContext();
 
-  // Cache system
   const embedCache = new Map();
   const resultCache = new Map();
 
@@ -239,14 +238,10 @@ export const useFiltering = () => {
     };
   };
 
-  // Thêm hàm tìm kiếm trong collection QAs
-
   const searchInFAQs = async (query) => {
     try {
-      // 1. Lấy embedding của query với mô hình mới
       const queryEmbed = await getEmbedding(query);
 
-      // 2. Gọi API để lấy tất cả FAQs
       const response = await fetch("/api/faqs/search", {
         method: "POST",
         headers: {
@@ -266,12 +261,10 @@ export const useFiltering = () => {
 
       if (!faqs || faqs.length === 0) return null;
 
-      // 3. Tính điểm cho mỗi FAQ
       const scoredFaqs = await Promise.all(
         faqs.map(async (faq) => {
           let totalScore = 0;
 
-          // 3.1. Semantic Similarity với embedding
           if (queryEmbed && faq.embedding) {
             const similarityScore = cosineSimilarity(queryEmbed, faq.embedding);
             if (!isNaN(similarityScore)) {
@@ -279,7 +272,6 @@ export const useFiltering = () => {
             }
           }
 
-          // 3.2. Keyword Matching
           const keywords = query.toLowerCase().trim().split(/\s+/);
           let keywordScore = 0;
           keywords.forEach((keyword) => {
@@ -292,7 +284,6 @@ export const useFiltering = () => {
           });
           totalScore += Math.min(0.4, keywordScore);
 
-          // 3.3. String Similarity với câu hỏi
           const questionSimilarity = stringSimilarity.compareTwoStrings(
             query.toLowerCase(),
             faq.question.toLowerCase()
@@ -306,7 +297,6 @@ export const useFiltering = () => {
         })
       );
 
-      // 4. Sắp xếp và lấy kết quả tốt nhất
       const bestMatch = scoredFaqs
         .sort((a, b) => b.score - a.score)
         .find((faq) => faq.score > 0.3);
@@ -330,7 +320,7 @@ export const useFiltering = () => {
 
   const fetchAllSnippets = async (query) => {
     try {
-      const relevantHistory = await getRelevantHistory(query);
+      // const relevantHistory = await getRelevantHistory(query);
 
       // Validate query trước khi fetch
       const validation = validateQuery(query);
@@ -379,17 +369,17 @@ export const useFiltering = () => {
       console.log("Best Snippets:", bestSnippet);
 
       if (bestSnippet && bestSnippet !== null) {
-        const humanizedResponse = await humanizeResponse(
-          {
-            bestMatch: bestSnippet,
-            additionalInfo: {
-              conversationHistory: relevantHistory,
-            },
-          },
-          query
-        );
+        // const humanizedResponse = await humanizeResponse(
+        //   {
+        //     bestMatch: bestSnippet,
+        //     additionalInfo: {
+        //       conversationHistory: relevantHistory,
+        //     },
+        //   },
+        //   query
+        // );
 
-        sendMessage(query, humanizedResponse.bestMatch);
+        sendMessage(query, bestSnippet);
       } else {
         sendMessage(query, {
           title: "",
@@ -405,12 +395,11 @@ export const useFiltering = () => {
     }
   };
 
-  const humanizeResponse = async (response, query) => {
-    return response; // Trả về response gốc không qua xử lý
-  };
+  // const humanizeResponse = async (response, query) => {
+  //   return response; // Trả về response gốc không qua xử lý
+  // };
 
   return {
-    //search,
     fetchAllSnippets,
   };
 };

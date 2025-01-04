@@ -16,7 +16,6 @@ export default defineEventHandler(async (event) => {
 
     const body = await readBody(event);
 
-    // Kiểm tra username đã tồn tại chưa
     const existingUser = await collection.findOne({ username: body.username });
     if (existingUser) {
       throw createError({
@@ -37,11 +36,10 @@ export default defineEventHandler(async (event) => {
 
     return { success: true, id: result.insertedId };
   } catch (error: any) {
-    // Nếu là lỗi từ createError, trả về nguyên vẹn
     if (error.statusCode) {
       throw error;
     }
-    // Nếu là lỗi MongoDB, xử lý như cũ
+
     const mongoError = error as MongoError;
     console.error("MongoDB Error:", mongoError);
     throw createError({

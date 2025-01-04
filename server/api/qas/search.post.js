@@ -6,12 +6,10 @@ export default defineEventHandler(async (event) => {
     const config = useRuntimeConfig();
     console.log("Attempting to connect to MongoDB...");
 
-    // Log connection string (remove in production)
     console.log("MongoDB URI:", config.mongoUri);
 
     client = new MongoClient(config.mongoUri);
 
-    // Đảm bảo kết nối được thiết lập
     console.log("Establishing connection...");
     await client.connect();
     console.log("Connected successfully");
@@ -28,7 +26,6 @@ export default defineEventHandler(async (event) => {
       throw new Error("Query is required");
     }
 
-    // Thực hiện tìm kiếm
     console.log("Executing search...");
     const results = await collection
       .find({
@@ -54,7 +51,6 @@ export default defineEventHandler(async (event) => {
       statusMessage: `Database error: ${error.message}`,
     });
   } finally {
-    // Đảm bảo luôn đóng kết nối
     if (client) {
       console.log("Closing connection...");
       await client.close();

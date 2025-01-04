@@ -1,8 +1,7 @@
 import { MongoClient } from "mongodb";
 
-// Định nghĩa cấu trúc collection (không bắt buộc nhưng giúp code dễ đọc)
 const conversationStructure = {
-  userId: String, // required, unique
+  userId: String,
   conversation: [
     {
       userMessage: String,

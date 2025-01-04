@@ -14,7 +14,6 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch data from API
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -67,7 +66,7 @@ const AdminPanel = () => {
       answer: item.answer,
       keyword: item.keyword,
     });
-    setEditingId(item._id); // Sử dụng _id từ MongoDB
+    setEditingId(item._id);
   };
 
   const handleDelete = async (id) => {

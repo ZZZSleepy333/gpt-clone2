@@ -14,7 +14,6 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     const updateData = { ...body };
 
-    // Chỉ hash password nếu có thay đổi password
     if (body.password) {
       updateData.password = await bcrypt.hash(body.password, 10);
     } else {

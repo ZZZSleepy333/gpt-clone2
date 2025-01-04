@@ -24,12 +24,10 @@
 import { ref } from "vue";
 import axios from "axios";
 
-// Khai báo các biến reactive
 const userQuestion = ref("");
 const answer = ref("");
 const error = ref("");
 
-// Hàm gọi API
 const fetchAnswer = async () => {
   try {
     error.value = "";

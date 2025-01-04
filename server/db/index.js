@@ -15,14 +15,13 @@ export const connectDB = async () => {
     const client = new MongoClient(mongoUri);
     await client.connect();
     console.log("MongoDB connected");
-    return client.db(); // Trả về database instance
+    return client.db();
   } catch (error) {
     console.error("MongoDB connection error:", error);
     process.exit(1);
   }
 };
 
-// Thêm hàm để kiểm tra kết nối
 export const checkConnection = async () => {
   try {
     await client.db().admin().ping();

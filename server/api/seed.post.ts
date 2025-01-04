@@ -10,10 +10,8 @@ export default defineEventHandler(async (event) => {
     const db = client.db("test");
     const collection = db.collection("users");
 
-    // Kiểm tra xem đã có dữ liệu chưa
     const existingUsers = await collection.countDocuments();
     if (existingUsers === 0) {
-      // Tạo dữ liệu mẫu
       const sampleData = [
         {
           username: "admin",

@@ -109,7 +109,7 @@ const ChatIDStore = useChatIDStore();
 const data = ref(null);
 
 const config = useRuntimeConfig();
-//const isLoading = ref(true);
+
 const messageStore = useMessageStore();
 
 defineComponent({
@@ -120,7 +120,6 @@ const conversationId = localStorage.getItem("chatId");
 
 const scrollContainer = ref(null);
 
-// Cải thiện hàm smoothScrollToBottom
 const smoothScrollToBottom = () => {
   if (scrollContainer.value) {
     const container = scrollContainer.value;
@@ -141,7 +140,7 @@ const handleClickSearch = async () => {
   console.log(input);
 
   isLoading.value = true;
-  // Scroll xuống ngay khi loader xuất hiện
+
   await nextTick();
   smoothScrollToBottom();
 
@@ -150,13 +149,12 @@ const handleClickSearch = async () => {
     await messageStore.saveConversation(messages.value);
   } finally {
     isLoading.value = false;
-    // Scroll xuống lần nữa sau khi có kết quả
+
     await nextTick();
     smoothScrollToBottom();
   }
 };
 
-// Thêm watcher để theo dõi thay đổi của messages
 watch(
   messages,
   () => {
@@ -167,10 +165,8 @@ watch(
   { deep: true }
 );
 
-// Thêm watcher cho isLoading
 watch(isLoading, (newValue) => {
   if (!newValue) {
-    // Khi loading kết thúc
     nextTick(() => {
       smoothScrollToBottom();
     });
@@ -218,9 +214,8 @@ const handleResize = () => {
 import { useSearch } from "~/composables/useSearch";
 
 const { searchGoogle } = useSearch();
-let results = null; // Lưu trữ kết quả trả về
+let results = null;
 
-// Hàm xử lý tìm kiếm
 const handleSearch = async (queryInput) => {
   try {
     console.log("Request URL:", `/api/search?q=${queryInput}`);

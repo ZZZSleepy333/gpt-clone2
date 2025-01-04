@@ -1,12 +1,9 @@
 <script setup>
 const user = ref(JSON.parse(localStorage.getItem("user") || "{}"));
-// console.log("Current user:", user.value);
-// console.log(user.value.displayName);
 
 const qas = ref([]);
 const loading = ref(false);
 
-// Hàm fetch data
 const fetchData = async () => {
   try {
     loading.value = true;
@@ -15,7 +12,7 @@ const fetchData = async () => {
         authorization: JSON.stringify(user.value),
       },
     });
-    // console.log("Fetched data:", response);
+
     qas.value = response;
   } catch (err) {
     console.error("Error fetching data:", err);
@@ -25,7 +22,6 @@ const fetchData = async () => {
   }
 };
 
-// Gọi fetchData khi component được tạo
 onMounted(() => {
   fetchData();
 });
@@ -39,11 +35,9 @@ const editingId = ref(null);
 const error = ref(null);
 const success = ref(null);
 
-// Thêm các biến cho pagination
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-// Thêm computed để tính toán dữ liệu phân trang
 const paginatedQas = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   const end = start + itemsPerPage;
@@ -54,13 +48,11 @@ const totalPages = computed(() => {
   return Math.ceil((qas.value?.length || 0) / itemsPerPage);
 });
 
-// Hàm để truncate text
 const truncateText = (text, length = 50) => {
   if (!text) return "";
   return text.length > length ? text.slice(0, length) + "..." : text;
 };
 
-// Thêm methods cho pagination
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
     currentPage.value++;
@@ -73,7 +65,6 @@ const prevPage = () => {
   }
 };
 
-// Thêm computed property để kiểm tra form hợp lệ
 const isFormValid = computed(() => {
   return (
     formData.value.question?.trim() &&
@@ -82,7 +73,6 @@ const isFormValid = computed(() => {
   );
 });
 
-// Thêm methods cho pagination
 const handleSubmit = async () => {
   if (!isFormValid.value) {
     error.value = "Vui lòng điền đầy đủ thông tin";
@@ -119,10 +109,8 @@ const handleSubmit = async () => {
       success.value = null;
     }, 3000);
 
-    // Fetch lại data sau khi thêm/sửa thành công
     await fetchData();
 
-    // Reset form
     formData.value = { question: "", answer: "", keyword: "" };
     editingId.value = null;
   } catch (err) {
@@ -153,7 +141,7 @@ const handleDelete = async (id) => {
         },
       });
       success.value = "Xóa câu hỏi thành công!";
-      await fetchData(); // Fetch lại data sau khi xóa
+      await fetchData();
 
       setTimeout(() => {
         success.value = null;
@@ -176,7 +164,6 @@ const handleEdit = (item) => {
   editingId.value = item._id;
 };
 
-// Hàm format date
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);

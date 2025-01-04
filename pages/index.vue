@@ -18,7 +18,8 @@
 </script>
 
 <template>
-  <div class="font-playwright">
+  <div>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <!-- <Header className="fixed bg-slate-50 w-[100vw] " /> -->
     <!-- <file-input-header /> -->
     <!-- <Header /> -->

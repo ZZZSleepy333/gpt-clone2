@@ -54,7 +54,6 @@ export const useMessageStore = defineStore("messageStore", {
           },
         });
 
-        // Log full response for debugging
         console.log("API Response:", response);
 
         if (response.data.success) {

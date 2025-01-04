@@ -16,7 +16,6 @@ export default defineEventHandler(async (event) => {
     const db = client.db(config.dbName);
     const collection = db.collection("users");
 
-    // Verify current user
     const user = await collection.findOne({ _id: new ObjectId(id) });
     if (!user) {
       throw createError({
@@ -25,7 +24,6 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Verify current password
     const validPassword = await bcrypt.compare(
       body.currentPassword,
       user.password
@@ -37,7 +35,6 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Update password
     const hashedPassword = await bcrypt.hash(body.newPassword, 10);
     await collection.updateOne(
       { _id: new ObjectId(id) },

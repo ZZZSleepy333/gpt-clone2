@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     await client.connect();
-    const db = client.db("test"); // hoặc config.mongodbName
+    const db = client.db("test");
     const collection = db.collection("users");
 
     const body = await readBody(event);
