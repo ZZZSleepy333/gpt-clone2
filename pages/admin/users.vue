@@ -17,6 +17,9 @@ const loading = ref(false);
 const showSnackbar = ref(false);
 const snackbarMessage = ref("");
 const snackbarType = ref("success");
+const sortBy = ref("");
+const sortDirection = ref("asc");
+const searchQuery = ref("");
 
 const isFormValid = computed(() => {
   const requiredFieldsValid =
@@ -129,6 +132,52 @@ const handleDelete = async (id) => {
     } catch (err) {
       error.value = err.data?.message || "Có lỗi xảy ra";
     }
+  }
+};
+
+const filteredAndSortedUsers = computed(() => {
+  let result = [...users.value];
+
+  // Tìm kiếm
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(
+      (user) =>
+        user.username.toLowerCase().includes(query) ||
+        user.displayName.toLowerCase().includes(query) ||
+        (user.role === "manager" ? "quản lý" : "nhân viên").includes(query)
+    );
+  }
+
+  // Sắp xếp
+  if (sortBy.value) {
+    result.sort((a, b) => {
+      let aVal = a[sortBy.value];
+      let bVal = b[sortBy.value];
+
+      // Xử lý hiển thị vai trò
+      if (sortBy.value === "role") {
+        aVal = aVal === "manager" ? "Quản lý" : "Nhân viên";
+        bVal = bVal === "manager" ? "Quản lý" : "Nhân viên";
+      }
+
+      if (sortDirection.value === "asc") {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+  }
+
+  return result;
+});
+
+const handleSort = (column) => {
+  if (sortBy.value === column) {
+    sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = column;
+    sortDirection.value = "asc";
   }
 };
 </script>
@@ -292,25 +341,47 @@ const handleDelete = async (id) => {
           </div>
         </form>
 
+        <!-- Thêm ô search trước bảng -->
+        <div class="mb-4">
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Tìm kiếm..."
+            class="text-black bg-white w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
         <!-- Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gradient-to-r from-blue-500 to-indigo-600">
               <tr>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                  @click="handleSort('username')"
+                  class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600"
                 >
                   Tên đăng nhập
+                  <span v-if="sortBy === 'username'" class="ml-1">
+                    {{ sortDirection === "asc" ? "↑" : "↓" }}
+                  </span>
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                  @click="handleSort('displayName')"
+                  class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600"
                 >
                   Tên hiển thị
+                  <span v-if="sortBy === 'displayName'" class="ml-1">
+                    {{ sortDirection === "asc" ? "↑" : "↓" }}
+                  </span>
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                  @click="handleSort('role')"
+                  class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600"
                 >
                   Vai trò
+                  <span v-if="sortBy === 'role'" class="ml-1">
+                    {{ sortDirection === "asc" ? "↑" : "↓" }}
+                  </span>
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
@@ -321,7 +392,7 @@ const handleDelete = async (id) => {
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr
-                v-for="user in users"
+                v-for="user in filteredAndSortedUsers"
                 :key="user._id"
                 class="hover:bg-gray-50"
               >

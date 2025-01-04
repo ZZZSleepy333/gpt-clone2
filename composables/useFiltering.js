@@ -11,8 +11,7 @@ export const useFiltering = () => {
   const { sendMessage } = useSendMessage();
   const config = useRuntimeConfig();
   const hf = new HfInference(config.public.huggingFaceApiKey);
-  // const { addToHistory, updateContext, getRelevantHistory, currentContext } =
-  //   useConversationContext();
+  const { messages, getCurrentContext } = useConversationContext();
 
   const embedCache = new Map();
   const resultCache = new Map();
@@ -320,9 +319,6 @@ export const useFiltering = () => {
 
   const fetchAllSnippets = async (query) => {
     try {
-      // const relevantHistory = await getRelevantHistory(query);
-
-      // Validate query trước khi fetch
       const validation = validateQuery(query);
       if (!validation.isValid) {
         sendMessage(query, {
@@ -333,11 +329,11 @@ export const useFiltering = () => {
         return;
       }
 
-      // Tìm kiếm trong FAQs
       const faqResult = await searchInFAQs(query);
       if (faqResult) {
         console.log("Found result in FAQs with score:", faqResult.score);
         sendMessage(query, faqResult);
+
         return;
       }
 
@@ -369,16 +365,6 @@ export const useFiltering = () => {
       console.log("Best Snippets:", bestSnippet);
 
       if (bestSnippet && bestSnippet !== null) {
-        // const humanizedResponse = await humanizeResponse(
-        //   {
-        //     bestMatch: bestSnippet,
-        //     additionalInfo: {
-        //       conversationHistory: relevantHistory,
-        //     },
-        //   },
-        //   query
-        // );
-
         sendMessage(query, bestSnippet);
       } else {
         sendMessage(query, {

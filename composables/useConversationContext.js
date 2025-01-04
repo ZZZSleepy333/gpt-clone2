@@ -1,46 +1,22 @@
 export const useConversationContext = () => {
-  const conversationHistory = ref([]);
-  const currentContext = ref(null);
+  const { messages } = useSendMessage();
+  const MAX_HISTORY = 5;
 
-  const addToHistory = (message) => {
-    conversationHistory.value.push({
-      ...message,
-      timestamp: Date.now(),
-    });
+  // Cập nhật context từ messages
+  const getCurrentContext = () => {
+    // Lấy tối đa MAX_HISTORY tin nhắn gần nhất
+    const recentMessages = messages.value.slice(-MAX_HISTORY);
 
-    if (conversationHistory.value.length > 10) {
-      conversationHistory.value.shift();
-    }
-  };
-
-  const updateContext = (query) => {
-    const contextKeywords = {
-      academic: ["học phí", "điểm", "học kỳ", "môn học"],
-      admission: ["tuyển sinh", "đăng ký", "xét tuyển"],
-      student_life: ["ký túc xá", "câu lạc bộ", "hoạt động"],
-    };
-
-    for (const [context, keywords] of Object.entries(contextKeywords)) {
-      if (keywords.some((keyword) => query.toLowerCase().includes(keyword))) {
-        currentContext.value = context;
-        break;
-      }
-    }
-  };
-
-  const getRelevantHistory = () => {
-    if (!currentContext.value) return [];
-
-    return conversationHistory.value.filter(
-      (msg) => msg.context === currentContext.value
-    );
+    return recentMessages
+      .map(
+        (msg) =>
+          `User: ${msg.userMessage}\nAssistant: ${msg.botMessage.snippet}`
+      )
+      .join("\n");
   };
 
   return {
-    conversationHistory,
-    currentContext,
-    addToHistory,
-    updateContext,
-    getRelevantHistory,
+    messages,
+    getCurrentContext,
   };
 };

@@ -5,6 +5,7 @@ const getFaqs = async () => {
     const client = await MongoClient.connect(process.env.MONGODB_URI);
     const db = client.db(process.env.MONGODB_DB_NAME);
     const collection = db.collection("qas");
+    console.log("qas: ", client, db);
 
     const faqs = await collection.find({}).toArray();
 
@@ -13,6 +14,7 @@ const getFaqs = async () => {
     console.log("Sample FAQ:", faqs[0]);
 
     await client.close();
+
     return faqs;
   } catch (error) {
     console.error("Error fetching FAQs from MongoDB:", error);
@@ -33,6 +35,7 @@ export default defineEventHandler(async (event) => {
       const queryLower = query.toLowerCase();
 
       const keywords = faq.keyword || [];
+      console.log("keywords: ", keywords);
       return (
         keywords.some((k) => queryLower.includes(k.toLowerCase())) ||
         faq.question.toLowerCase().includes(queryLower)

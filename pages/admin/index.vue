@@ -38,10 +38,48 @@ const success = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
+const sortBy = ref("");
+const sortDirection = ref("asc");
+const searchQuery = ref("");
+
+const filteredAndSortedQas = computed(() => {
+  let result = [...qas.value];
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(
+      (item) =>
+        item.question.toLowerCase().includes(query) ||
+        item.answer.toLowerCase().includes(query) ||
+        item.createdBy.toLowerCase().includes(query)
+    );
+  }
+
+  if (sortBy.value) {
+    result.sort((a, b) => {
+      let aVal = a[sortBy.value];
+      let bVal = b[sortBy.value];
+
+      if (sortBy.value === "createdAt" || sortBy.value === "updatedAt") {
+        aVal = new Date(aVal);
+        bVal = new Date(bVal);
+      }
+
+      if (sortDirection.value === "asc") {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+  }
+
+  return result;
+});
+
 const paginatedQas = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  return qas.value?.slice(start, end) || [];
+  return filteredAndSortedQas.value.slice(start, end);
 });
 
 const totalPages = computed(() => {
@@ -84,13 +122,21 @@ const handleSubmit = async () => {
     error.value = null;
     success.value = null;
 
+    const processedData = {
+      ...formData.value,
+      keyword: formData.value.keyword
+        .split(",")
+        .map((k) => k.trim())
+        .filter((k) => k),
+    };
+
     if (editingId.value) {
       await $fetch(`/api/qa/${editingId.value}`, {
         method: "PUT",
         headers: {
           authorization: JSON.stringify(user.value),
         },
-        body: formData.value,
+        body: processedData,
       });
       success.value = "Cập nhật câu hỏi thành công!";
     } else {
@@ -100,7 +146,7 @@ const handleSubmit = async () => {
           authorization: JSON.stringify(user.value),
           "Content-Type": "application/json",
         },
-        body: formData.value,
+        body: processedData,
       });
       success.value = "Thêm câu hỏi mới thành công!";
     }
@@ -174,6 +220,15 @@ const formatDate = (dateString) => {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+};
+
+const handleSort = (column) => {
+  if (sortBy.value === column) {
+    sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = column;
+    sortDirection.value = "asc";
+  }
 };
 </script>
 
@@ -274,29 +329,53 @@ const formatDate = (dateString) => {
       </div>
 
       <!-- Table -->
+      <div class="mb-4">
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="Tìm kiếm..."
+          class="text-black bg-white w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
       <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gradient-to-r from-blue-500 to-indigo-600">
             <tr>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                @click="handleSort('question')"
+                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600"
               >
                 Câu hỏi
+                <span v-if="sortBy === 'question'" class="ml-1">
+                  {{ sortDirection === "asc" ? "↑" : "↓" }}
+                </span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                @click="handleSort('answer')"
+                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600"
               >
                 Câu trả lời
+                <span v-if="sortBy === 'answer'" class="ml-1">
+                  {{ sortDirection === "asc" ? "↑" : "↓" }}
+                </span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                @click="handleSort('createdBy')"
+                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600"
               >
                 Người tạo
+                <span v-if="sortBy === 'createdBy'" class="ml-1">
+                  {{ sortDirection === "asc" ? "↑" : "↓" }}
+                </span>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                @click="handleSort('createdAt')"
+                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600"
               >
                 Ngày tạo
+                <span v-if="sortBy === 'createdAt'" class="ml-1">
+                  {{ sortDirection === "asc" ? "↑" : "↓" }}
+                </span>
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
@@ -369,14 +448,14 @@ const formatDate = (dateString) => {
             <button
               @click="prevPage"
               :disabled="currentPage === 1"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Trước
             </button>
             <button
               @click="nextPage"
               :disabled="currentPage === totalPages"
-              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Sau
             </button>
