@@ -96,15 +96,21 @@
         <div class="space-y-4">
           <div>
             <p class="font-medium">Tin nhắn người dùng:</p>
-            <p class="mt-1 text-gray-600">{{ selectedReport.userMessage }}</p>
+            <p class="mt-1 text-gray-600">
+              {{ truncateText(selectedReport.userMessage) }}
+            </p>
           </div>
           <div>
             <p class="font-medium">Phản hồi của bot:</p>
-            <p class="mt-1 text-gray-600">{{ selectedReport.botMessage }}</p>
+            <p class="mt-1 text-gray-600">
+              {{ truncateText(selectedReport.botMessage) }}
+            </p>
           </div>
           <div>
             <p class="font-medium">Lý do báo cáo:</p>
-            <p class="mt-1 text-gray-600">{{ selectedReport.reason }}</p>
+            <p class="mt-1 text-gray-600">
+              {{ truncateText(selectedReport.reason) }}
+            </p>
           </div>
           <div>
             <p class="font-medium">Thời gian báo cáo:</p>
