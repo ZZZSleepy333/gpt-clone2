@@ -202,6 +202,7 @@ onMounted(async () => {
     await nextTick();
     smoothScrollToBottom();
   } else {
+    ChatIDStore.createNewChatId();
     console.error("Không có userId");
   }
 });
