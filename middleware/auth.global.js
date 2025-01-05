@@ -5,12 +5,10 @@ export default defineNuxtRouteMiddleware((to) => {
     user: process.client ? localStorage.getItem("user") : null,
   });
 
-  // Nếu không phải trang admin thì cho đi tiếp
   if (!to.path.startsWith("/admin")) {
     return;
   }
 
-  // Nếu đang ở trang login thì cho đi tiếp
   if (to.path === "/login") {
     return;
   }
