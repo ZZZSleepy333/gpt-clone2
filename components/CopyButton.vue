@@ -1,6 +1,6 @@
 <template>
   <div>
-    <button @click="copyText" class="hover:text-blue-500">
+    <button @click="copyText" class="hover:text-blue-200">
       <i class="fas fa-copy"></i>
     </button>
 

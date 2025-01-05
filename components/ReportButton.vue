@@ -2,7 +2,7 @@
   <div>
     <button
       @click="showReportModal = true"
-      class="text-gray-500 hover:text-red-500"
+      class="text-red-400 hover:text-red-500"
     >
       <i class="fas fa-flag"></i>
     </button>
