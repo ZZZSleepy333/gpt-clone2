@@ -3,7 +3,7 @@ const props = defineProps({
   message: String,
   type: {
     type: String,
-    default: "success", // 'success' hoặc 'error'
+    default: "success",
   },
   show: Boolean,
 });

@@ -13,7 +13,6 @@ export default defineEventHandler(async (event) => {
     const db = client.db(config.dbName);
     const collection = db.collection("qas");
 
-    // Trả về tất cả các trường, bao gồm thông tin người tạo/cập nhật
     const qas = await collection.find({}).sort({ createdAt: -1 }).toArray();
 
     return qas;

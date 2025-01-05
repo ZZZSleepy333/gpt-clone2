@@ -138,7 +138,6 @@ const handleDelete = async (id) => {
 const filteredAndSortedUsers = computed(() => {
   let result = [...users.value];
 
-  // Tìm kiếm
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(
@@ -149,13 +148,11 @@ const filteredAndSortedUsers = computed(() => {
     );
   }
 
-  // Sắp xếp
   if (sortBy.value) {
     result.sort((a, b) => {
       let aVal = a[sortBy.value];
       let bVal = b[sortBy.value];
 
-      // Xử lý hiển thị vai trò
       if (sortBy.value === "role") {
         aVal = aVal === "manager" ? "Quản lý" : "Nhân viên";
         bVal = bVal === "manager" ? "Quản lý" : "Nhân viên";

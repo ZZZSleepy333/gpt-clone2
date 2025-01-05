@@ -2,14 +2,16 @@
   <div>
     <button
       @click="showReportModal = true"
-      class="text-red-400 hover:text-red-500"
+      class="text-gray-500 hover:text-red-500"
     >
       <i class="fas fa-flag"></i>
     </button>
 
     <Modal v-if="showReportModal" @close="showReportModal = false">
       <form @submit.prevent="submitReport" class="space-y-4">
-        <h3 class="text-lg font-bold text-center">Báo cáo tin nhắn</h3>
+        <h3 class="text-lg font-bold text-red-500 text-center">
+          Báo cáo tin nhắn
+        </h3>
         <div>
           <textarea
             v-model="reason"
@@ -29,9 +31,13 @@
           </button>
           <button
             type="submit"
-            class="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600"
+            class="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600 flex items-center gap-2"
+            :disabled="isLoading"
           >
-            Gửi báo cáo
+            <span v-if="isLoading" class="animate-spin">
+              <i class="fas fa-circle-notch"></i>
+            </span>
+            {{ isLoading ? "Đang gửi..." : "Gửi báo cáo" }}
           </button>
         </div>
       </form>
@@ -49,6 +55,7 @@ import Snackbar from "./Snackbar.vue";
 const showReportModal = ref(false);
 const showSnackbar = ref(false);
 const reason = ref("");
+const isLoading = ref(false);
 
 const props = defineProps({
   messageId: String,
@@ -58,16 +65,22 @@ const props = defineProps({
 
 async function submitReport() {
   try {
+    isLoading.value = true;
+
+    const reportData = {
+      userId: localStorage.getItem("chatId"),
+      reason: reason.value,
+      userMessage: props.userMessage,
+      botMessage: props.botMessage,
+    };
+
+    console.log("Dữ liệu báo cáo sẽ gửi:", reportData);
+
     await $fetch("/api/reports", {
       method: "POST",
-      body: {
-        messageId: props.messageId,
-        userId: localStorage.getItem("chatId"),
-        reason: reason.value,
-        userMessage: props.userMessage,
-        botMessage: props.botMessage,
-      },
+      body: reportData,
     });
+
     showReportModal.value = false;
     reason.value = "";
     showSnackbar.value = true;
@@ -76,6 +89,8 @@ async function submitReport() {
     }, 3000);
   } catch (error) {
     console.error("Error submitting report:", error);
+  } finally {
+    isLoading.value = false;
   }
 }
 </script>

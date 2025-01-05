@@ -4,11 +4,9 @@ const reportSchema = new mongoose.Schema(
   {
     userId: {
       type: String,
-      required: true,
     },
     reason: {
       type: String,
-      required: true,
     },
     status: {
       type: String,
@@ -17,11 +15,9 @@ const reportSchema = new mongoose.Schema(
     },
     userMessage: {
       type: String,
-      required: true,
     },
     botMessage: {
       type: String,
-      required: true,
     },
   },
   { timestamps: true }

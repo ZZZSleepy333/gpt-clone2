@@ -44,7 +44,8 @@
                   <div class="flex gap-2 text-black">
                     <CopyButton :text="message.botMessage.snippet" />
                     <ReportButton
-                      :message-id="message.id"
+                      :user-message="message.userMessage"
+                      :bot-message="message.botMessage.snippet"
                       class="text-sm text-gray-500 hover:text-red-500"
                     />
                   </div>

@@ -66,19 +66,21 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                  <button
-                    @click="showDetails(report)"
-                    class="text-indigo-600 hover:text-indigo-900 mr-4 transition-colors duration-200"
-                  >
-                    Xem chi tiết
-                  </button>
-                  <button
-                    v-if="report.status === 'pending'"
-                    @click="markAsResolved(report._id)"
-                    class="text-green-600 hover:text-green-900 transition-colors duration-200"
-                  >
-                    Đánh dấu đã xử lý
-                  </button>
+                  <div class="flex justify-between items-center">
+                    <button
+                      @click="showDetails(report)"
+                      class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200"
+                    >
+                      Xem chi tiết
+                    </button>
+                    <button
+                      v-if="report.status === 'pending'"
+                      @click="markAsResolved(report._id)"
+                      class="text-green-600 hover:text-green-900 transition-colors duration-200 ml-4"
+                    >
+                      Đánh dấu đã xử lý
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -89,8 +91,8 @@
 
     <!-- Modal chi tiết -->
     <Modal v-if="selectedReport" @close="selectedReport = null">
-      <div class="p-4">
-        <h3 class="text-lg font-bold mb-4">Chi tiết báo cáo</h3>
+      <div class="p-4 text-black">
+        <h3 class="text-lg font-bold mb-4 text-center">Chi tiết báo cáo</h3>
         <div class="space-y-4">
           <div>
             <p class="font-medium">Tin nhắn người dùng:</p>
@@ -126,7 +128,6 @@ const selectedReport = ref(null);
 const success = ref(null);
 const error = ref(null);
 
-// Lấy danh sách báo cáo
 async function fetchReports() {
   try {
     reports.value = await $fetch("/api/reports");
@@ -135,7 +136,6 @@ async function fetchReports() {
   }
 }
 
-// Đánh dấu đã xử lý
 async function markAsResolved(id) {
   try {
     await $fetch(`/api/reports/${id}`, {
@@ -156,12 +156,10 @@ async function markAsResolved(id) {
   }
 }
 
-// Hiển thị chi tiết báo cáo
 function showDetails(report) {
   selectedReport.value = report;
 }
 
-// Format date
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -174,7 +172,6 @@ const formatDate = (dateString) => {
   }).format(date);
 };
 
-// Truncate text
 const truncateText = (text, length = 50) => {
   if (!text) return "";
   return text.length > length ? text.slice(0, length) + "..." : text;
