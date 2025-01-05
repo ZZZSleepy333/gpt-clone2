@@ -12,14 +12,14 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const response = await axios.get(url, {
+    const response = await axios.get(url as string, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
     });
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     return createError({
       statusCode: error.response?.status || 500,
       message: error.message,
