@@ -1,59 +1,30 @@
 <script setup>
-const credentials = ref({
-  username: "",
-  password: "",
-});
-const error = ref(null);
-const success = ref(null);
-const loading = ref(false);
+const { login } = useAuth();
+const credentials = ref({ username: "", password: "" });
 const showPassword = ref(false);
-const router = useRouter();
-const loginAttempts = ref(0);
+const loading = ref(false);
+const error = ref(null);
 
 const handleSubmit = async () => {
+  loading.value = true;
+  error.value = null;
+
   try {
-    loading.value = true;
-    error.value = null;
-    success.value = null;
-
-    const response = await $fetch("/api/auth/login", {
-      method: "POST",
-      body: credentials.value,
-    });
-
-    localStorage.setItem("user", JSON.stringify(response));
-    loginAttempts.value = 0;
-    success.value = "Đăng nhập thành công!";
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    router.push("/admin");
-  } catch (err) {
-    console.log("Lỗi đăng nhập:", err);
-    loginAttempts.value++;
-    error.value =
-      err.data?.message ||
-      "Đăng nhập không thành công, tài khoản hoặc mật khẩu không chính xác";
+    const success = await login(
+      credentials.value.username,
+      credentials.value.password
+    );
+    if (success) {
+      navigateTo("/admin");
+    } else {
+      error.value = "Đăng nhập thất bại";
+    }
+  } catch (e) {
+    error.value = e.message || "Có lỗi xảy ra";
   } finally {
     loading.value = false;
   }
 };
-
-let resetTimer;
-watch(loginAttempts, (newValue) => {
-  if (newValue > 0) {
-    clearTimeout(resetTimer);
-    resetTimer = setTimeout(
-      () => {
-        loginAttempts.value = 0;
-      },
-      5 * 60 * 1000
-    );
-  }
-});
-
-onUnmounted(() => {
-  clearTimeout(resetTimer);
-});
 </script>
 
 <template>
@@ -99,6 +70,7 @@ onUnmounted(() => {
             <input
               type="text"
               v-model="credentials.username"
+              required
               class="text-black mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -111,6 +83,7 @@ onUnmounted(() => {
               <input
                 :type="showPassword ? 'text' : 'password'"
                 v-model="credentials.password"
+                required
                 class="text-black mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <button

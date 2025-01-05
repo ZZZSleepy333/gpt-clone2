@@ -28,12 +28,16 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    return {
+    const userData = {
       id: user._id,
       username: user.username,
       displayName: user.displayName,
       role: user.role,
     };
+
+    event.context.userData = userData;
+
+    return userData;
   } catch (error) {
     throw createError({
       statusCode: error.statusCode || 500,
