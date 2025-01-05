@@ -3,7 +3,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     const user = process.client ? localStorage.getItem("user") : null;
 
     if (!user) {
-      return navigateTo("/login");
+      return navigateTo("/login", { immediate: true });
     }
 
     try {
@@ -12,13 +12,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
         if (process.client) {
           localStorage.removeItem("user");
         }
-        return navigateTo("/login");
+        return navigateTo("/login", { immediate: true });
       }
     } catch (error) {
       if (process.client) {
         localStorage.removeItem("user");
       }
-      return navigateTo("/login");
+      return navigateTo("/login", { immediate: true });
     }
   }
 });
