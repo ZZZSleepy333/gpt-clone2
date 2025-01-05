@@ -1,6 +1,6 @@
 <script setup>
 definePageMeta({
-  middleware: ["auth"],
+  // middleware: ["manager-only"],
 });
 
 const { data: users, refresh } = await useFetch("/api/users");
