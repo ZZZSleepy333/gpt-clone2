@@ -15,11 +15,7 @@
                 >
                   Thời gian
                 </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
-                >
-                  Người báo cáo
-                </th>
+
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
                 >
@@ -46,9 +42,9 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ formatDate(report.createdAt) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <!-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ report.userId }}
-                </td>
+                </td> -->
                 <td class="px-6 py-4 text-sm text-gray-500">
                   {{ truncateText(report.reason, 50) }}
                 </td>
