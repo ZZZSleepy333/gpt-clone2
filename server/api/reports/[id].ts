@@ -1,9 +1,5 @@
 import { MongoClient, ObjectId } from "mongodb";
 
-interface MongoError {
-  message: string;
-}
-
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const client = new MongoClient(config.mongoUri);
@@ -20,28 +16,79 @@ export default defineEventHandler(async (event) => {
     await client.connect();
     const db = client.db(config.dbName);
     const collection = db.collection("reports");
-    const body = await readBody(event);
 
-    const result = await collection.findOneAndUpdate(
-      { _id: new ObjectId(id) },
-      { $set: { status: body.status } },
-      { returnDocument: "after" }
-    );
+    // Xử lý PUT request
+    if (event.method === "PUT") {
+      const body = await readBody(event);
 
-    if (!result?.value) {
-      throw createError({
-        statusCode: 404,
-        message: "Report not found",
-      });
+      if (!body.status || !["pending", "resolved"].includes(body.status)) {
+        throw createError({
+          statusCode: 400,
+          message: "Invalid status value",
+        });
+      }
+
+      const result = await collection.findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            status: body.status,
+            updatedAt: new Date(),
+          },
+        },
+        { returnDocument: "after" }
+      );
+
+      if (!result) {
+        throw createError({
+          statusCode: 404,
+          message: "Report not found",
+        });
+      }
+
+      return result;
     }
 
-    return result?.value;
+    // Xử lý DELETE request
+    if (event.method === "DELETE") {
+      // Kiểm tra trạng thái trước khi xóa
+      const report = await collection.findOne({ _id: new ObjectId(id) });
+
+      if (!report) {
+        throw createError({
+          statusCode: 404,
+          message: "Report not found",
+        });
+      }
+
+      if (report.status !== "resolved") {
+        throw createError({
+          statusCode: 400,
+          message: "Can only delete resolved reports",
+        });
+      }
+
+      const result = await collection.findOneAndDelete({
+        _id: new ObjectId(id),
+      });
+
+      return { message: "Report deleted successfully" };
+    }
+
+    throw createError({
+      statusCode: 405,
+      message: "Method not allowed",
+    });
   } catch (error: any) {
-    const mongoError = error as MongoError;
-    console.error("MongoDB Error:", mongoError);
+    console.error("MongoDB Error:", error);
+
+    if (error.statusCode) {
+      throw error;
+    }
+
     throw createError({
       statusCode: 500,
-      message: mongoError.message || "Database error",
+      message: error.message || "Internal Server Error",
     });
   } finally {
     await client.close();

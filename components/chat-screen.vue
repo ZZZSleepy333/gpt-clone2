@@ -91,7 +91,11 @@
             />
             <button
               @click="handleClickSearch"
-              class="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+              :disabled="!newMessage?.trim()"
+              class="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="{
+                'hover:from-blue-600 hover:to-indigo-700': newMessage?.trim(),
+              }"
             >
               <i class="fas fa-paper-plane"></i>
             </button>

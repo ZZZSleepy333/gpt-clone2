@@ -124,7 +124,7 @@ const handleSubmit = async () => {
             </div>
             <div class="flex justify-end mt-2">
               <NuxtLink
-                to="/admin/password"
+                to="/password"
                 class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200"
               >
                 Quên mật khẩu?

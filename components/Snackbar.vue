@@ -14,11 +14,11 @@ const props = defineProps({
     <div
       v-if="show"
       :class="[
-        'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50',
+        'fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50',
         type === 'success' ? 'bg-green-500' : 'bg-red-500',
       ]"
     >
-      <p class="text-white">{{ message }}</p>
+      <p class="text-white whitespace-nowrap">{{ message }}</p>
     </div>
   </Transition>
 </template>
@@ -34,7 +34,7 @@ const props = defineProps({
 
 .slide-fade-enter-from,
 .slide-fade-leave-to {
-  transform: translateX(20px);
+  transform: translateY(-20px) translateX(-50%);
   opacity: 0;
 }
 </style>
