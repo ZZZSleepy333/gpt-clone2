@@ -17,7 +17,6 @@ export default defineEventHandler(async (event) => {
     const db = client.db(config.dbName);
     const collection = db.collection("reports");
 
-    // Xử lý PUT request
     if (event.method === "PUT") {
       const body = await readBody(event);
 
@@ -49,9 +48,7 @@ export default defineEventHandler(async (event) => {
       return result;
     }
 
-    // Xử lý DELETE request
     if (event.method === "DELETE") {
-      // Kiểm tra trạng thái trước khi xóa
       const report = await collection.findOne({ _id: new ObjectId(id) });
 
       if (!report) {

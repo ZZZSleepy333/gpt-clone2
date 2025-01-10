@@ -248,7 +248,6 @@ const itemsPerPage = 10;
 const filteredAndSortedReports = computed(() => {
   let result = [...reports.value];
 
-  // Tìm kiếm
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(
@@ -260,7 +259,6 @@ const filteredAndSortedReports = computed(() => {
     );
   }
 
-  // Sắp xếp
   if (sortBy.value) {
     result.sort((a, b) => {
       let aVal = a[sortBy.value];
@@ -392,12 +390,9 @@ const truncateText = (text, length = 50) => {
   return text.length > length ? text.slice(0, length) + "..." : text;
 };
 
-// Thêm hàm xóa báo cáo
 async function handleDelete(id) {
-  // Tìm report cần xóa
   const report = reports.value.find((r) => r._id === id);
 
-  // Kiểm tra trạng thái
   if (!report || report.status !== "resolved") {
     error.value = "Chỉ có thể xóa báo cáo đã được xử lý";
     setTimeout(() => {

@@ -7,7 +7,6 @@ export const useAuth = () => {
       });
 
       if (data.value) {
-        // Lưu thông tin user vào localStorage
         localStorage.setItem("user", JSON.stringify(data.value));
         return true;
       }

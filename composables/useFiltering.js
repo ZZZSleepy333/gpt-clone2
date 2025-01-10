@@ -1,16 +1,12 @@
 import { useSendMessage } from "~/composables/useSendMessage.js";
-import axios from "axios";
-import stringSimilarity from "string-similarity";
-import { useRuntimeConfig } from "nuxt/app";
-import { HfInference } from "@huggingface/inference";
-import openai from "../utils/openai";
+
 import { useConversationContext } from "~/composables/useConversationContext.js";
 import * as cheerio from "cheerio";
+import stringSimilarity from "string-similarity";
 
 export const useFiltering = () => {
   const { sendMessage } = useSendMessage();
   const config = useRuntimeConfig();
-  const hf = new HfInference(config.public.huggingFaceApiKey);
   const { messages, getCurrentContext } = useConversationContext();
 
   const embedCache = new Map();
@@ -30,10 +26,16 @@ export const useFiltering = () => {
     for (let i = 0; i < retries; i++) {
       try {
         const processedText = text.trim().replace(/\s+/g, " ").slice(0, 512);
-        const embedding = await hf.featureExtraction({
-          model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-          inputs: processedText,
+
+        const response = await fetch("/api/embedding", {
+          method: "POST",
+          body: JSON.stringify({ text: processedText }),
+          headers: {
+            "Content-Type": "application/json",
+          },
         });
+
+        const embedding = await response.json();
 
         embedCache.set(cacheKey, {
           embedding,
@@ -49,17 +51,31 @@ export const useFiltering = () => {
   };
 
   const cosineSimilarity = (embeddings1, embeddings2) => {
-    const dotProduct = embeddings1.reduce(
-      (sum, val, i) => sum + val * embeddings2[i],
-      0
-    );
-    const norm1 = Math.sqrt(
-      embeddings1.reduce((sum, val) => sum + val * val, 0)
-    );
-    const norm2 = Math.sqrt(
-      embeddings2.reduce((sum, val) => sum + val * val, 0)
-    );
-    return dotProduct / (norm1 * norm2);
+    if (!embeddings1 || !embeddings2) return 0;
+
+    const arr1 = Array.isArray(embeddings1)
+      ? embeddings1
+      : Object.values(embeddings1);
+    const arr2 = Array.isArray(embeddings2)
+      ? embeddings2
+      : Object.values(embeddings2);
+
+    if (arr1.length === 0 || arr2.length === 0 || arr1.length !== arr2.length) {
+      console.warn("Invalid embeddings dimensions");
+      return 0;
+    }
+
+    try {
+      const dotProduct = arr1.reduce((sum, val, i) => sum + val * arr2[i], 0);
+      const norm1 = Math.sqrt(arr1.reduce((sum, val) => sum + val * val, 0));
+      const norm2 = Math.sqrt(arr2.reduce((sum, val) => sum + val * val, 0));
+
+      if (norm1 === 0 || norm2 === 0) return 0;
+      return dotProduct / (norm1 * norm2);
+    } catch (error) {
+      console.error("Error calculating similarity:", error);
+      return 0;
+    }
   };
 
   const findBestSnippet = async (query, snippets) => {
@@ -143,8 +159,8 @@ export const useFiltering = () => {
             totalScore += 0.15;
           }
 
-          const positionBonus = Math.max(0, 0.1 - index * 0.01);
-          totalScore += positionBonus;
+          // const positionBonus = Math.max(0, 0.1 - index * 0.01);
+          // totalScore += positionBonus;
 
           console.log(`Snippet ${index} score:`, totalScore.toFixed(2));
 
@@ -328,34 +344,32 @@ export const useFiltering = () => {
 
       const [faqResult, serpResponse] = await Promise.all([
         searchInFAQs(query),
-        axios.get("https://serpapi.com/search", {
-          params: {
-            q: validateQuery(query),
-            engine: "duckduckgo",
-            api_key: config.public.serpAPI,
-          },
+        fetch("/api/search", {
+          method: "POST",
+          body: JSON.stringify({ query: validateQuery(query) }),
           headers: {
-            Accept: "application/json",
+            "Content-Type": "application/json",
           },
-        }),
+        }).then((res) => res.json()),
       ]);
 
       if (faqResult) {
         console.log("Found result in FAQs with score:", faqResult.score);
         sendMessage(query, faqResult);
-
         return;
       }
 
-      const data = serpResponse.data;
+      const data = serpResponse?.data || serpResponse;
       let snippets = [];
 
-      if (data.organic_results) {
+      if (data && data.organic_results && Array.isArray(data.organic_results)) {
         snippets = data.organic_results.map((result) => ({
           snippet: result.snippet || "",
           title: result.title || "",
           link: result.link || "",
         }));
+      } else {
+        console.log("No organic results found in response:", data);
       }
 
       console.log("All Snippets:", snippets);

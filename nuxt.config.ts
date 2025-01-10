@@ -35,11 +35,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     mongoUri: process.env.MONGODB_URI,
     dbName: process.env.MONGODB_DB_NAME || "test",
+    serpAPI: process.env.SERP_API_KEY,
+    huggingFaceApiKey: process.env.HUGGING_FACE_API_KEY,
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE,
       mongodbUri: process.env.MONGODB_URI,
-      serpAPI: process.env.SERP_API_KEY,
-      huggingFaceApiKey: process.env.HUGGING_FACE_API_KEY,
       openaiApiKey: process.env.OPENAI_API_KEY,
     },
   },
